@@ -11,12 +11,12 @@ import { Line } from "react-chartjs-2";
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
-export default function LineChart({ labels, data }) {
+export default function LineChart({ labels, data, datasetLabel = "Value" }) {
   const chartData = {
     labels,
     datasets: [
       {
-        label: "Traffic",
+        label: datasetLabel,
         data,
         borderColor: "#00ff9c",
         backgroundColor: "#00ff9c33",

@@ -1,26 +1,26 @@
 const { fetchBestPerformingStock, fetchWorldNews } = require("./liveData");
+const { fetchGlobalMarket, fetchTopCoins, fetchBtcSeries } = require("./cryptoData");
 
-const generateBaseMetrics = () => ({
-  users: 12400,
-  sales: 8300,
-  revenue: 65000,
-  activeSessions: 498,
-  apiRequests: 120300,
-  traffic: [30, 45, 28, 80, 99, 43, 50],
-  regionSales: [2200, 3100, 1800, 1200],
-  deviceUsage: [64, 26, 10],
-  labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-  regionLabels: ["Americas", "Europe", "Asia", "Africa"],
-  deviceLabels: ["Desktop", "Mobile", "Tablet"]
-});
-
+// Assembles the full dashboard payload from live sources (CoinGecko global +
+// markets + BTC series, Alpha Vantage stock + news). Each source self-falls-back,
+// so this resolves even when an upstream is down.
 const generateMetrics = async () => {
-  const [bestStock, worldNews] = await Promise.all([fetchBestPerformingStock(), fetchWorldNews()]);
+  const [global, topCoins, btcSeries, bestStock, worldNews] = await Promise.all([
+    fetchGlobalMarket(),
+    fetchTopCoins(),
+    fetchBtcSeries(),
+    fetchBestPerformingStock(),
+    fetchWorldNews()
+  ]);
 
   return {
-    ...generateBaseMetrics(),
+    cards: global.cards,
+    btcSeries,
+    topCoins,
+    dominance: global.dominance,
     bestStock,
     worldNews,
+    dataSources: ["CoinGecko", "Alpha Vantage"],
     updatedAt: new Date().toISOString()
   };
 };
