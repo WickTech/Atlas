@@ -1,41 +1,45 @@
-const compactUsd = (value) => {
-  if (value == null) return "N/A";
-  return `$${Number(value).toLocaleString("en-US", {
-    notation: "compact",
-    maximumFractionDigits: 2
-  })}`;
-};
+import { compactNumber, compactUsd, sentimentColor } from "../lib/format";
+import KpiCard from "./KpiCard";
 
-const compactNumber = (value) => {
-  if (value == null) return "N/A";
-  return Number(value).toLocaleString("en-US", { notation: "compact" });
-};
-
+// Top KPI strip. Sentiment-first: market mood + news volume + top driver lead,
+// followed by supporting crypto-market context cards (incl. the previously
+// unused "Active Markets" count).
 export default function DashboardCards({ metrics }) {
   const c = metrics.cards || {};
-  const change = c.marketCapChange24h;
+  const s = metrics.sentiment || {};
+  const btcSpark = metrics.btcSeries?.d7?.prices || [];
+  const topDriver = s.topTickers?.[0];
 
   const cards = [
-    { label: "Total Market Cap", value: compactUsd(c.marketCap) },
-    { label: "24h Volume", value: compactUsd(c.volume24h) },
-    { label: "BTC Dominance", value: c.btcDominance == null ? "N/A" : `${c.btcDominance}%` },
-    { label: "Active Coins", value: compactNumber(c.activeCoins) },
     {
-      label: "Mkt Cap 24h",
-      value: change == null ? "N/A" : `${change > 0 ? "+" : ""}${change}%`,
-      tone: change == null ? "" : change >= 0 ? "up" : "down"
-    }
+      label: "Market Mood",
+      value: s.overall?.label ?? "Neutral",
+      accent: sentimentColor(s.overall?.bucket ?? "neutral")
+    },
+    { label: "News Tracked", value: compactNumber(metrics.news?.length ?? 0) },
+    {
+      label: "Top Driver",
+      value: topDriver ? topDriver.ticker : "—",
+      accent: topDriver ? sentimentColor(topDriver.label) : undefined
+    },
+    {
+      label: "Total Market Cap",
+      value: compactUsd(c.marketCap),
+      delta: c.marketCapChange24h,
+      sparkline: btcSpark
+    },
+    { label: "24h Volume", value: compactUsd(c.volume24h) },
+    {
+      label: "BTC Dominance",
+      value: c.btcDominance == null ? "N/A" : `${c.btcDominance}%`
+    },
+    { label: "Active Markets", value: compactNumber(c.markets) }
   ];
 
   return (
-    <section className="stats-grid">
+    <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
       {cards.map((card) => (
-        <article className="card" key={card.label}>
-          <p className="card-label">{card.label}</p>
-          <h2 className={`card-value ${card.tone ? `card-value--${card.tone}` : ""}`}>
-            {card.value}
-          </h2>
-        </article>
+        <KpiCard key={card.label} {...card} />
       ))}
     </section>
   );

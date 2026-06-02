@@ -1,11 +1,28 @@
 # World Monitor App
 
-A full-stack starter for a WorldMonitor-style analytics dashboard using:
+A full-stack **world news & market-sentiment** dashboard:
 
-- **Backend**: Node.js + Express REST API (for local development)
-- **Frontend**: React + Vite + Chart.js
+- **Backend**: Node.js + Express REST API + SSE stream (for local development)
+- **Frontend**: React + Vite + Tailwind CSS + Chart.js (light/dark themes)
 - **Deployment**: Vercel static frontend + serverless `/api/*` endpoints
-- **Live data**: Alpha Vantage (top performers + world/market news)
+- **Live data**:
+  - **GDELT** (free, no key) — high-volume global news + tone + country
+  - **Alpha Vantage** — rich per-article sentiment (score/label, topics, ticker sentiment) + top stock
+  - **CoinGecko** (free, no key) — supporting crypto-market context
+
+## Features
+
+- News & sentiment-first layout: searchable/filterable global news feed with
+  per-article sentiment chips, timestamps, summaries, topics and ticker tags.
+- Sentiment overview: market-mood gauge, distribution doughnut, sentiment trend,
+  top mentioned tickers (click a ticker to drill down).
+- KPI strip with deltas + sparklines (market cap, dominance, volume, active markets).
+- Asset drill-down drawer: price, 24h/7d change, volume, mini chart + related news.
+- Market context section: Bitcoin price with 24h / 7d / 30d range toggle, top coins
+  (click to drill down), dominance, best-performing stock.
+- Light/dark theme (persisted, respects OS preference).
+- Resilient: every source self-falls-back, and the last good news feed is retained
+  through transient upstream gaps so the dashboard never goes blank.
 
 ## Project structure
 
@@ -53,7 +70,15 @@ Set this env var in local shell and in Vercel project settings:
 ALPHA_VANTAGE_API_KEY=your_key_here
 ```
 
-If key is missing or rate-limited, the UI displays safe fallback values.
+If the key is missing or rate-limited, GDELT still supplies the global news feed and
+the UI shows safe fallback values for the Alpha-Vantage-only fields.
+
+GDELT requires **no API key**. Optional tuning env vars:
+
+```bash
+GDELT_QUERY="(economy OR markets OR finance OR geopolitics)"  # GDELT search query
+METRICS_TTL_MS=300000   # snapshot cache TTL (raise in prod to ease rate limits)
+```
 
 ## Deploy on Vercel
 

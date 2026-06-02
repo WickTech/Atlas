@@ -1,0 +1,123 @@
+// Global world-news + tone from the GDELT Project DOC 2.0 API.
+// Free, no API key, high volume — used to complement Alpha Vantage's richer (but
+// heavily rate-limited) per-article sentiment. Every fetcher self-falls-back so a
+// GDELT outage or a malformed response never breaks the dashboard payload.
+const GDELT_BASE = process.env.GDELT_BASE || "https://api.gdeltproject.org/api/v2/doc/doc";
+
+// Broad "world monitor" query: markets + economy + geopolitics.
+const DEFAULT_QUERY =
+  process.env.GDELT_QUERY || "(economy OR markets OR finance OR geopolitics)";
+
+const asNumber = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+const gdeltUrl = (params) => {
+  const search = new URLSearchParams(params);
+  return `${GDELT_BASE}?${search.toString()}`;
+};
+
+// GDELT sometimes returns HTML/plain-text errors with a 200 status, so we read as
+// text first and only parse when it looks like JSON.
+const fetchGdeltJson = async (url) => {
+  const response = await fetch(url, {
+    headers: { Accept: "application/json", "User-Agent": "World-Monitor-App/1.0" }
+  });
+  if (!response.ok) throw new Error(`Request failed (${response.status})`);
+  const text = await response.text();
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    throw new Error("Non-JSON GDELT response");
+  }
+  return JSON.parse(trimmed);
+};
+
+// GDELT timestamps are "YYYYMMDDTHHMMSSZ" (or "YYYYMMDDHHMMSS"). Normalize to ISO.
+const parseGdeltTime = (raw) => {
+  if (!raw) return null;
+  const digits = String(raw).replace(/[^0-9]/g, "");
+  if (digits.length < 14) return null;
+  const iso = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(
+    6,
+    8
+  )}T${digits.slice(8, 10)}:${digits.slice(10, 12)}:${digits.slice(12, 14)}Z`;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+// World news article list -> merged into the main news feed.
+const fetchGdeltNews = async () => {
+  try {
+    const payload = await fetchGdeltJson(
+      gdeltUrl({
+        query: DEFAULT_QUERY,
+        mode: "ArtList",
+        format: "json",
+        maxrecords: "50",
+        sort: "DateDesc"
+      })
+    );
+
+    const articles = Array.isArray(payload?.articles) ? payload.articles : [];
+    return articles.slice(0, 50).map((a) => ({
+      title: a.title,
+      url: a.url,
+      source: a.domain,
+      sourceDomain: a.domain || null,
+      timePublished: parseGdeltTime(a.seendate),
+      summary: "",
+      bannerImage: a.socialimage || null,
+      sentimentScore: null, // ToneChart provides aggregate tone separately
+      sentimentLabel: "Neutral",
+      topics: [],
+      tickerSentiment: [],
+      country: a.sourcecountry || null,
+      language: a.language || null,
+      provider: "GDELT"
+    }));
+  } catch (_error) {
+    return [];
+  }
+};
+
+// Aggregate tone distribution for the broad query -> sentiment context when
+// Alpha Vantage volume is thin. Returns { bins: [{ tone, count }], average }.
+const fetchWorldTone = async () => {
+  try {
+    const payload = await fetchGdeltJson(
+      gdeltUrl({
+        query: DEFAULT_QUERY,
+        mode: "ToneChart",
+        format: "json"
+      })
+    );
+
+    const bins = Array.isArray(payload?.tonechart)
+      ? payload.tonechart.map((b) => ({ tone: asNumber(b.bin), count: asNumber(b.count) }))
+      : [];
+
+    if (!bins.length) return { bins: [], average: null };
+
+    let weighted = 0;
+    let total = 0;
+    for (const b of bins) {
+      if (b.tone == null || b.count == null) continue;
+      weighted += b.tone * b.count;
+      total += b.count;
+    }
+    return { bins, average: total ? Number((weighted / total).toFixed(2)) : null };
+  } catch (_error) {
+    return { bins: [], average: null };
+  }
+};
+
+// GDELT rate-limits concurrent requests, so fetch the two endpoints sequentially
+// and expose them as one promise the caller can run in parallel with other sources.
+const fetchGdeltBundle = async () => {
+  const news = await fetchGdeltNews();
+  const tone = await fetchWorldTone();
+  return { news, tone };
+};
+
+module.exports = { fetchGdeltNews, fetchWorldTone, fetchGdeltBundle, parseGdeltTime };

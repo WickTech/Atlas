@@ -8,10 +8,16 @@ const PUSH_INTERVAL_MS = Number(process.env.METRICS_PUSH_MS) || 15000;
 
 let cached = null; // { data, fetchedAt }
 let inflight = null; // de-dupes concurrent refreshes
+let lastGoodNews = null; // { news, sentiment } — survives transient upstream gaps
 const subscribers = new Set();
 let pushTimer = null;
 
 const isFresh = () => cached && Date.now() - cached.fetchedAt < TTL_MS;
+
+// "Real" news means at least one article from a live provider (not the safe
+// fallback item). News-first dashboard, so we never want to surface a blank feed.
+const hasRealNews = (data) =>
+  Array.isArray(data?.news) && data.news.some((n) => n.provider && n.provider !== "Fallback");
 
 // Returns cached snapshot if fresh, otherwise refreshes (coalescing concurrent
 // callers onto a single upstream request).
@@ -20,7 +26,22 @@ const getMetrics = async () => {
 
   if (!inflight) {
     inflight = generateMetrics()
-      .then((data) => {
+      .then((fresh) => {
+        let data = fresh;
+        if (hasRealNews(fresh)) {
+          lastGoodNews = { news: fresh.news, sentiment: fresh.sentiment };
+        } else if (lastGoodNews) {
+          // Upstream news temporarily empty (e.g. GDELT throttle, no AV key):
+          // keep the last good feed + sentiment so the page stays populated,
+          // while still refreshing live market data.
+          data = {
+            ...fresh,
+            news: lastGoodNews.news,
+            topTickers: lastGoodNews.sentiment.topTickers,
+            sentiment: lastGoodNews.sentiment,
+            newsStale: true
+          };
+        }
         cached = { data, fetchedAt: Date.now() };
         return data;
       })
