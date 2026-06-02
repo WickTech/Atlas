@@ -1,193 +1,91 @@
-:root {
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  color: #ecf0f1;
-  background-color: #0b1016;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Dark theme (default). Tokens are consumed via Tailwind semantic colors. */
+  :root,
+  :root.dark {
+    --bg: #0b1016;
+    --surface: #0f1c2b;
+    --surface-2: #13283f;
+    --border: #1f3346;
+    --fg: #e8eef4;
+    --muted: #8aa0b4;
+    --accent: #00e6a8;
+    --accent-soft: rgba(0, 230, 168, 0.12);
+    --bull: #16c784;
+    --neutral: #8aa0b4;
+    --bear: #f6465d;
+    color-scheme: dark;
+  }
+
+  :root.light {
+    --bg: #f4f7fb;
+    --surface: #ffffff;
+    --surface-2: #eef3f9;
+    --border: #d8e2ee;
+    --fg: #0c1722;
+    --muted: #5b7186;
+    --accent: #009e74;
+    --accent-soft: rgba(0, 158, 116, 0.12);
+    --bull: #0e9f6e;
+    --neutral: #5b7186;
+    --bear: #e02d4b;
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  body {
+    font-family: theme("fontFamily.sans");
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Themeable scrollbars for the news feed and drawers. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+  }
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer components {
+  .panel {
+    @apply rounded-xl border border-border bg-surface shadow-panel;
+  }
 
-body {
-  margin: 0;
-  background: radial-gradient(circle at top, #101b2a 0%, #0b1016 50%, #06090d 100%);
-  min-height: 100vh;
-}
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
 
-.dashboard {
-  position: relative;
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-h1 {
-  margin-top: 0;
-}
-
-.dashboard-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.live-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border: 1px solid rgba(0, 255, 156, 0.35);
-  background: rgba(0, 255, 156, 0.08);
-  color: #00ff9c;
-}
-
-.live-status .live-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 0 0 currentColor;
-  animation: live-pulse 1.8s infinite;
-}
-
-.live-status--reconnecting {
-  border-color: rgba(243, 156, 18, 0.4);
-  background: rgba(243, 156, 18, 0.1);
-  color: #f39c12;
-}
-
-.live-status--polling {
-  border-color: rgba(52, 152, 219, 0.4);
-  background: rgba(52, 152, 219, 0.1);
-  color: #3498db;
-}
-
-.live-status--reconnecting .live-dot {
-  animation: none;
+  .live-dot {
+    @apply h-2.5 w-2.5 rounded-full;
+    box-shadow: 0 0 0 0 currentColor;
+    animation: live-pulse 1.8s infinite;
+  }
 }
 
 @keyframes live-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(0, 255, 156, 0.5);
+    box-shadow: 0 0 0 0 rgba(22, 199, 132, 0.5);
   }
   70% {
-    box-shadow: 0 0 0 8px rgba(0, 255, 156, 0);
+    box-shadow: 0 0 0 8px rgba(22, 199, 132, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(0, 255, 156, 0);
-  }
-}
-
-.stats-grid,
-.charts-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-.stats-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-
-.charts-grid {
-  margin-top: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-}
-
-.card,
-.chart-panel,
-.news-corner {
-  background: rgba(13, 26, 42, 0.85);
-  border: 1px solid rgba(0, 255, 156, 0.25);
-  border-radius: 14px;
-  padding: 1rem;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
-}
-
-.card-label {
-  color: #7f8c8d;
-  margin-bottom: 0.25rem;
-}
-
-.card-value {
-  margin: 0;
-  color: #00ff9c;
-}
-
-.card-value--up {
-  color: #00ff9c;
-}
-
-.card-value--down {
-  color: #f72585;
-}
-
-.market-panel .stock-symbol {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #00ff9c;
-  margin: 0.5rem 0;
-}
-
-.source {
-  color: #95a5a6;
-  font-size: 0.85rem;
-}
-
-.news-corner {
-  position: fixed;
-  right: 1rem;
-  top: 1rem;
-  width: min(340px, calc(100vw - 2rem));
-  max-height: 75vh;
-  overflow: auto;
-  z-index: 10;
-}
-
-.news-corner h3 {
-  margin-top: 0;
-}
-
-.news-corner ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 0.8rem;
-}
-
-.news-corner a {
-  color: #ecf0f1;
-  text-decoration: none;
-}
-
-.news-corner a:hover {
-  color: #00ff9c;
-}
-
-.news-corner span {
-  display: block;
-  color: #7f8c8d;
-  font-size: 0.8rem;
-  margin-top: 0.2rem;
-}
-
-.state-message {
-  min-height: 100vh;
-  display: grid;
-  place-content: center;
-  color: #ecf0f1;
-}
-
-@media (max-width: 1024px) {
-  .news-corner {
-    position: static;
-    width: 100%;
-    margin-top: 1rem;
-    max-height: none;
+    box-shadow: 0 0 0 0 rgba(22, 199, 132, 0);
   }
 }

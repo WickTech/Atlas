@@ -4,38 +4,35 @@ import {
   CategoryScale,
   LinearScale,
   PointElement,
+  Filler,
   Tooltip,
   Legend
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
+import { baseChartOptions, readTokens } from "../lib/chartTheme";
 
-export default function LineChart({ labels, data, datasetLabel = "Value" }) {
+ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Filler, Tooltip, Legend);
+
+export default function LineChart({ labels, data, datasetLabel = "Value", color }) {
+  const tokens = readTokens();
+  const line = color || tokens.accent;
+
   const chartData = {
     labels,
     datasets: [
       {
         label: datasetLabel,
         data,
-        borderColor: "#00ff9c",
-        backgroundColor: "#00ff9c33",
+        borderColor: line,
+        backgroundColor: `${line}22`,
+        pointRadius: 0,
+        pointHoverRadius: 4,
         fill: true,
         tension: 0.35
       }
     ]
   };
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: { labels: { color: "#ecf0f1" } }
-    },
-    scales: {
-      x: { ticks: { color: "#95a5a6" }, grid: { color: "#1f2d3a" } },
-      y: { ticks: { color: "#95a5a6" }, grid: { color: "#1f2d3a" } }
-    }
-  };
-
-  return <Line data={chartData} options={options} />;
+  return <Line data={chartData} options={baseChartOptions(tokens)} />;
 }
