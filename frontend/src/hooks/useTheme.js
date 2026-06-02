@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-const STORAGE_KEY = "wm-theme";
+const STORAGE_KEY = "atlas-theme";
 
 const getInitialTheme = () => {
   if (typeof document !== "undefined") {

@@ -27,7 +27,7 @@ export default function TopBar({ status, updatedAt, search, onSearch, theme, onT
             🌐
           </span>
           <h1 className="text-lg font-bold leading-tight">
-            World Monitor
+            Atlas
             <span className="ml-2 hidden text-xs font-normal text-muted sm:inline">
               News &amp; Sentiment
             </span>

@@ -1,4 +1,4 @@
-# World Monitor App
+# Atlas 🌍
 
 A full-stack **world news & market-sentiment** dashboard:
 
