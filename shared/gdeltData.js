@@ -4,7 +4,7 @@
 // GDELT outage or a malformed response never breaks the dashboard payload.
 const GDELT_BASE = process.env.GDELT_BASE || "https://api.gdeltproject.org/api/v2/doc/doc";
 
-// Broad "world monitor" query: markets + economy + geopolitics.
+// Broad "Atlas" world query: markets + economy + geopolitics.
 const DEFAULT_QUERY =
   process.env.GDELT_QUERY || "(economy OR markets OR finance OR geopolitics)";
 
@@ -22,7 +22,7 @@ const gdeltUrl = (params) => {
 // text first and only parse when it looks like JSON.
 const fetchGdeltJson = async (url) => {
   const response = await fetch(url, {
-    headers: { Accept: "application/json", "User-Agent": "World-Monitor-App/1.0" }
+    headers: { Accept: "application/json", "User-Agent": "Atlas/1.0" }
   });
   if (!response.ok) throw new Error(`Request failed (${response.status})`);
   const text = await response.text();

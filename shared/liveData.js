@@ -13,7 +13,7 @@ const asNumber = (value) => {
 const fetchJson = async (url) => {
   const response = await fetch(url, {
     headers: {
-      "User-Agent": "World-Monitor-App/1.0"
+      "User-Agent": "Atlas/1.0"
     }
   });
 
