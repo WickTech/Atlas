@@ -4,14 +4,25 @@
 // GDELT outage or a malformed response never breaks the dashboard payload.
 const GDELT_BASE = process.env.GDELT_BASE || "https://api.gdeltproject.org/api/v2/doc/doc";
 
-// Broad "Atlas" world query: markets + economy + geopolitics.
+// Atlas is India-first: bias the query toward India + South Asia while still
+// pulling global markets/geopolitics for the "World" scope. The frontend India/
+// World toggle then filters client-side using the `indiaRelated` flag below
+// (the SSE stream is shared, so scope can't be a per-client server param).
 const DEFAULT_QUERY =
-  process.env.GDELT_QUERY || "(economy OR markets OR finance OR geopolitics)";
+  process.env.GDELT_QUERY ||
+  "(India OR Bharat OR Modi OR RBI OR Sensex OR Nifty OR Rupee OR economy OR markets OR geopolitics)";
 
 const asNumber = (value) => {
   const num = Number(value);
   return Number.isFinite(num) ? num : null;
 };
+
+// Heuristic: is this article India-relevant? Drives the India/World scope toggle
+// and India-boosted ranking. Exported so the metrics layer can reuse it.
+const INDIA_RE =
+  /\b(india|indian|bharat|modi|new delhi|delhi|mumbai|bengaluru|bangalore|kolkata|chennai|hyderabad|sensex|nifty|\brbi\b|rupee|sebi|adani|reliance|infosys|\btcs\b)\b/i;
+const isIndiaRelated = ({ title = "", country = "", summary = "" } = {}) =>
+  country === "India" || INDIA_RE.test(`${title} ${summary}`);
 
 const gdeltUrl = (params) => {
   const search = new URLSearchParams(params);
@@ -60,22 +71,26 @@ const fetchGdeltNews = async () => {
     );
 
     const articles = Array.isArray(payload?.articles) ? payload.articles : [];
-    return articles.slice(0, 50).map((a) => ({
-      title: a.title,
-      url: a.url,
-      source: a.domain,
-      sourceDomain: a.domain || null,
-      timePublished: parseGdeltTime(a.seendate),
-      summary: "",
-      bannerImage: a.socialimage || null,
-      sentimentScore: null, // ToneChart provides aggregate tone separately
-      sentimentLabel: "Neutral",
-      topics: [],
-      tickerSentiment: [],
-      country: a.sourcecountry || null,
-      language: a.language || null,
-      provider: "GDELT"
-    }));
+    return articles.slice(0, 60).map((a) => {
+      const country = a.sourcecountry || null;
+      return {
+        title: a.title,
+        url: a.url,
+        source: a.domain,
+        sourceDomain: a.domain || null,
+        timePublished: parseGdeltTime(a.seendate),
+        summary: "",
+        bannerImage: a.socialimage || null,
+        sentimentScore: null, // ToneChart provides aggregate tone separately
+        sentimentLabel: "Neutral",
+        topics: [],
+        tickerSentiment: [],
+        country,
+        language: a.language || null,
+        indiaRelated: isIndiaRelated({ title: a.title, country }),
+        provider: "GDELT"
+      };
+    });
   } catch (_error) {
     return [];
   }
@@ -120,4 +135,10 @@ const fetchGdeltBundle = async () => {
   return { news, tone };
 };
 
-module.exports = { fetchGdeltNews, fetchWorldTone, fetchGdeltBundle, parseGdeltTime };
+module.exports = {
+  fetchGdeltNews,
+  fetchWorldTone,
+  fetchGdeltBundle,
+  parseGdeltTime,
+  isIndiaRelated
+};

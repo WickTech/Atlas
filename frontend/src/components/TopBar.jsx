@@ -14,8 +14,18 @@ const STATUS_COLOR = {
   connecting: "var(--muted)"
 };
 
-// Sticky header: brand, live-status pill, news search, last-updated, theme toggle.
-export default function TopBar({ status, updatedAt, search, onSearch, theme, onToggleTheme }) {
+// Sticky header: brand, India/World scope, live-status, search, theme toggle.
+export default function TopBar({
+  status,
+  updatedAt,
+  search,
+  onSearch,
+  theme,
+  onToggleTheme,
+  scope = "world",
+  onScopeChange,
+  onOpenPalette
+}) {
   const key = STATUS_LABELS[status] ? status : "live";
   const color = STATUS_COLOR[key];
 
@@ -42,6 +52,25 @@ export default function TopBar({ status, updatedAt, search, onSearch, theme, onT
           {STATUS_LABELS[key]}
         </span>
 
+        {/* India / World scope toggle */}
+        <div className="inline-flex rounded-lg border border-border bg-surface-2 p-0.5">
+          {[
+            { k: "india", label: "🇮🇳 India" },
+            { k: "world", label: "🌍 World" }
+          ].map((s) => (
+            <button
+              key={s.k}
+              type="button"
+              onClick={() => onScopeChange?.(s.k)}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                scope === s.k ? "bg-accent text-[#04130d]" : "text-muted hover:text-fg"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
         <div className="order-last w-full sm:order-none sm:ml-auto sm:w-auto sm:flex-1 sm:max-w-xs">
           <input
             type="search"
@@ -54,9 +83,19 @@ export default function TopBar({ status, updatedAt, search, onSearch, theme, onT
 
         {updatedAt && (
           <span className="hidden text-xs text-muted md:inline">
-            Updated {new Date(updatedAt).toLocaleTimeString()}
+            Updated {new Date(updatedAt).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" })} IST
           </span>
         )}
+
+        {/* Command palette launcher */}
+        <button
+          type="button"
+          onClick={onOpenPalette}
+          title="Command palette (Ctrl/⌘K)"
+          className="hidden items-center gap-1 rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-xs text-muted hover:text-fg sm:inline-flex"
+        >
+          ⌘K
+        </button>
 
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>

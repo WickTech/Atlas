@@ -1,6 +1,12 @@
 const { fetchBestPerformingStock, fetchWorldNews } = require("./liveData");
-const { fetchGdeltBundle } = require("./gdeltData");
+const { fetchGdeltBundle, isIndiaRelated } = require("./gdeltData");
 const { fetchGlobalMarket, fetchTopCoins, fetchBtcSeries } = require("./cryptoData");
+const { classifyArticle, ALL_CATEGORIES } = require("./categories");
+const { computeCountryIndex } = require("./countryIndex");
+const { normalizeCountryName } = require("./geo");
+const { computeSignals } = require("./signals");
+const { generateBriefs } = require("./aiBriefs");
+const { fetchFinance } = require("./financeData");
 
 // Maps a numeric sentiment score to a coarse bull/neutral/bear bucket using
 // Alpha Vantage's documented thresholds (>=0.15 bullish, <=-0.15 bearish).
@@ -112,17 +118,41 @@ const computeSentiment = (news, worldTone) => {
 // markets + BTC series, Alpha Vantage stock + news, GDELT world news + tone).
 // Each source self-falls-back, so this resolves even when an upstream is down.
 const generateMetrics = async () => {
-  const [global, topCoins, btcSeries, bestStock, avNews, gdelt] = await Promise.all([
+  const [global, topCoins, btcSeries, bestStock, avNews, gdelt, finance] = await Promise.all([
     fetchGlobalMarket(),
     fetchTopCoins(),
     fetchBtcSeries(),
     fetchBestPerformingStock(),
     fetchWorldNews(),
-    fetchGdeltBundle()
+    fetchGdeltBundle(),
+    fetchFinance()
   ]);
 
-  const news = mergeNews(avNews, gdelt.news);
+  // Merge sources, then enrich each article with India-relevance + category so
+  // every downstream derivation (map, risk, signals, briefs, scope toggle) works.
+  const news = mergeNews(avNews, gdelt.news).map((n) => ({
+    ...n,
+    indiaRelated: n.indiaRelated ?? isIndiaRelated(n),
+    category: n.category || classifyArticle(n),
+    // Normalized to the map's topojson name so map/risk clicks filter the feed.
+    countryNorm: normalizeCountryName(n.country)
+  }));
+
   const sentiment = computeSentiment(news, gdelt.tone);
+  const countryIndex = computeCountryIndex(news);
+  const signals = computeSignals(news, countryIndex);
+
+  // Per-category counts for the news nav.
+  const catCounts = news.reduce((acc, n) => {
+    acc[n.category] = (acc[n.category] || 0) + 1;
+    return acc;
+  }, {});
+  const categories = ALL_CATEGORIES.map((c) => ({ ...c, count: catCounts[c.key] || 0 })).filter(
+    (c) => c.count > 0
+  );
+
+  // Briefs depend on the classified news, so run after assembly (LLM call).
+  const briefs = await generateBriefs(news);
 
   return {
     cards: global.cards,
@@ -133,7 +163,12 @@ const generateMetrics = async () => {
     topCoins,
     dominance: global.dominance,
     bestStock,
-    dataSources: ["CoinGecko", "Alpha Vantage", "GDELT"],
+    countryIndex,
+    signals,
+    categories,
+    briefs,
+    finance,
+    dataSources: ["CoinGecko", "Alpha Vantage", "GDELT", "Yahoo Finance"],
     updatedAt: new Date().toISOString()
   };
 };
