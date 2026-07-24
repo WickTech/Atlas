@@ -1,3 +1,5 @@
+const { fetchWithTimeout } = require("./fetchWithTimeout");
+
 const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY || "demo";
 
 const alphaVantageUrl = (params) => {
@@ -11,7 +13,7 @@ const asNumber = (value) => {
 };
 
 const fetchJson = async (url) => {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: {
       "User-Agent": "Atlas/1.0"
     }

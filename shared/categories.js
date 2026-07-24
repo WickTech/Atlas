@@ -5,8 +5,10 @@
 
 // Ordered by match priority. `key` is stable; `label` is shown in the UI.
 const CATEGORIES = [
-  { key: "markets", label: "Markets & Economy", keywords: ["stock", "market", "economy", "economic", "gdp", "inflation", "rupee", "sensex", "nifty", "rbi", "earnings", "ipo", "trade", "tariff", "fed", "rate", "bond", "currency", "crypto", "bitcoin"] },
-  { key: "geopolitics", label: "Geopolitics", keywords: ["election", "minister", "diplomatic", "border", "sanction", "treaty", "summit", "parliament", "government", "modi", "china", "pakistan", "united nations", "g20", "bilateral"] },
+  { key: "markets", label: "Markets & Economy", keywords: ["stock", "market", "economy", "economic", "gdp", "inflation", "rupee", "sensex", "nifty", "rbi", "trade", "tariff", "fed", "rate", "bond", "currency", "crypto", "bitcoin"] },
+  { key: "business", label: "Business & Corporate", keywords: ["earnings", "ipo", "merger", "acquisition", "ceo", "corporate", "company", "layoffs", "revenue", "profit", "quarterly results", "shareholder", "startup funding", "conglomerate"] },
+  { key: "politics", label: "Politics & Elections", keywords: ["election", "minister", "parliament", "government", "modi", "party", "campaign", "poll", "cabinet", "opposition", "voting", "ballot", "lok sabha", "rajya sabha", "chief minister", "president", "prime minister"] },
+  { key: "geopolitics", label: "Geopolitics", keywords: ["diplomatic", "border", "sanction", "treaty", "summit", "china", "pakistan", "united nations", "g20", "bilateral", "embassy", "foreign policy"] },
   { key: "defense", label: "Defense & Security", keywords: ["military", "army", "navy", "air force", "missile", "defense", "defence", "war", "troops", "terror", "attack", "strike", "drone", "weapon", "ceasefire"] },
   { key: "energy", label: "Energy", keywords: ["oil", "gas", "crude", "opec", "energy", "power", "electricity", "solar", "renewable", "coal", "petrol", "diesel", "pipeline", "nuclear"] },
   { key: "technology", label: "Technology", keywords: ["tech", "ai", "artificial intelligence", "software", "chip", "semiconductor", "startup", "google", "apple", "microsoft", "infosys", "data", "cyber", "internet", "app"] },
@@ -25,8 +27,8 @@ const TOPIC_MAP = {
   financial_markets: "markets",
   finance: "markets",
   technology: "technology",
-  ipo: "markets",
-  earnings: "markets",
+  ipo: "business",
+  earnings: "business",
   energy_transportation: "energy",
   manufacturing: "markets",
   life_sciences: "health",
