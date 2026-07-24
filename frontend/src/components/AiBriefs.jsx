@@ -17,12 +17,12 @@ export default function AiBriefs({ briefs }) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-border bg-surface-2 p-3">
+        <div className="border border-border bg-surface-2 p-3">
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-accent">🇮🇳 India brief</p>
           <p className="text-sm leading-relaxed text-fg">{briefs.india || "—"}</p>
         </div>
         {briefs.global ? (
-          <div className="rounded-lg border border-border bg-surface-2 p-3">
+          <div className="border border-border bg-surface-2 p-3">
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">🌍 Global brief</p>
             <p className="text-sm leading-relaxed text-fg">{briefs.global}</p>
           </div>
@@ -32,7 +32,7 @@ export default function AiBriefs({ briefs }) {
       {briefs.categories?.length ? (
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {briefs.categories.slice(0, 6).map((c) => (
-            <div key={c.label} className="rounded-lg border border-border p-2.5">
+            <div key={c.label} className="border border-border p-2.5">
               <p className="text-xs font-semibold text-muted">{c.label}</p>
               <p className="text-sm text-fg">{c.text}</p>
             </div>

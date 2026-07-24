@@ -14,8 +14,8 @@ function CategoryNav({ categories, value, onChange }) {
       <button
         type="button"
         onClick={() => onChange("all")}
-        className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition ${
-          value === "all" ? "bg-accent text-[#04130d]" : "bg-surface-2 text-muted hover:text-fg"
+        className={`shrink-0 border border-border px-3 py-1 text-xs font-bold transition ${
+          value === "all" ? "border-accent bg-accent text-white" : "bg-surface-2 text-muted hover:text-fg"
         }`}
       >
         All
@@ -25,8 +25,8 @@ function CategoryNav({ categories, value, onChange }) {
           key={c.key}
           type="button"
           onClick={() => onChange(c.key)}
-          className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition ${
-            value === c.key ? "bg-accent text-[#04130d]" : "bg-surface-2 text-muted hover:text-fg"
+          className={`shrink-0 border border-border px-3 py-1 text-xs font-bold transition ${
+            value === c.key ? "border-accent bg-accent text-white" : "bg-surface-2 text-muted hover:text-fg"
           }`}
         >
           {c.label} <span className="opacity-70">{c.count}</span>
@@ -134,7 +134,7 @@ export default function NewsFeed({
           <button
             type="button"
             onClick={() => setVisible((v) => v + PAGE_SIZE)}
-            className="mt-1 self-center rounded-lg border border-border bg-surface-2 px-4 py-2 text-sm font-medium text-fg transition hover:border-accent hover:text-accent"
+            className="mt-1 self-center border border-border bg-surface-2 px-4 py-2 text-sm font-medium text-fg transition hover:border-accent hover:text-accent"
           >
             Load more
           </button>

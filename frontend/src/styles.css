@@ -6,32 +6,34 @@
   /* Dark theme (default). Tokens are consumed via Tailwind semantic colors. */
   :root,
   :root.dark {
-    --bg: #0b1016;
-    --surface: #0f1c2b;
-    --surface-2: #13283f;
-    --border: #1f3346;
-    --fg: #e8eef4;
-    --muted: #8aa0b4;
-    --accent: #00e6a8;
-    --accent-soft: rgba(0, 230, 168, 0.12);
-    --bull: #16c784;
-    --neutral: #8aa0b4;
-    --bear: #f6465d;
+    --bg: #201e1d;
+    --surface: #2d2b2b;
+    --surface-2: #383534;
+    --border: color-mix(in srgb, #f8f4f4 14%, transparent);
+    --fg: #f8f4f4;
+    --muted: color-mix(in srgb, #f8f4f4 55%, transparent);
+    --accent: #ec3013;
+    --accent-400: #ff9783;
+    --accent-soft: color-mix(in srgb, #ec3013 12%, transparent);
+    --bull: #5fd48c;
+    --neutral: color-mix(in srgb, #f8f4f4 45%, transparent);
+    --bear: #ec3013;
     color-scheme: dark;
   }
 
   :root.light {
-    --bg: #f4f7fb;
+    --bg: #f3f2f2;
     --surface: #ffffff;
-    --surface-2: #eef3f9;
-    --border: #d8e2ee;
-    --fg: #0c1722;
-    --muted: #5b7186;
-    --accent: #009e74;
-    --accent-soft: rgba(0, 158, 116, 0.12);
-    --bull: #0e9f6e;
-    --neutral: #5b7186;
-    --bear: #e02d4b;
+    --surface-2: #eae9e9;
+    --border: color-mix(in srgb, #201e1d 40%, transparent);
+    --fg: #201e1d;
+    --muted: color-mix(in srgb, #201e1d 55%, transparent);
+    --accent: #ec3013;
+    --accent-400: #ff9783;
+    --accent-soft: color-mix(in srgb, #ec3013 12%, transparent);
+    --bull: #1c6b3f;
+    --neutral: color-mix(in srgb, #201e1d 45%, transparent);
+    --bear: #ec3013;
     color-scheme: light;
   }
 
@@ -64,15 +66,15 @@
 
 @layer components {
   .panel {
-    @apply rounded-xl border border-border bg-surface shadow-panel;
+    @apply rounded-none border border-border bg-surface;
   }
 
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
+    @apply inline-flex items-center gap-1 rounded-none px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider;
   }
 
   .live-dot {
-    @apply h-2.5 w-2.5 rounded-full;
+    @apply h-1.5 w-1.5 rounded-full;
     box-shadow: 0 0 0 0 currentColor;
     animation: live-pulse 1.8s infinite;
   }
@@ -80,12 +82,12 @@
 
 @keyframes live-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(22, 199, 132, 0.5);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--bull) 50%, transparent);
   }
   70% {
-    box-shadow: 0 0 0 8px rgba(22, 199, 132, 0);
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--bull) 0%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(22, 199, 132, 0);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--bull) 0%, transparent);
   }
 }

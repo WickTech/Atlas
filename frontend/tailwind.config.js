@@ -15,18 +15,16 @@ export default {
         muted: "var(--muted)",
         accent: "var(--accent)",
         "accent-soft": "var(--accent-soft)",
+        "accent-400": "var(--accent-400)",
         bull: "var(--bull)",
         neutral: "var(--neutral)",
         bear: "var(--bear)"
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"]
+        sans: ["Archivo", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"]
       },
       boxShadow: {
         panel: "0 6px 24px rgba(0, 0, 0, 0.18)"
-      },
-      borderRadius: {
-        xl: "14px"
       }
     }
   },

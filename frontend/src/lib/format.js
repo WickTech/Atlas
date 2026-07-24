@@ -120,3 +120,7 @@ export const sentimentColor = (labelOrScore) => {
 
 export const deltaClass = (value) =>
   value == null ? "text-muted" : value >= 0 ? "text-bull" : "text-bear";
+
+// Severity -> CSS color for signal dots/badges (high=accent, medium=amber, low=muted).
+export const sevColor = (severity) =>
+  severity === "high" ? "var(--accent)" : severity === "medium" ? "#e0952a" : "var(--neutral)";

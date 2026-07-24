@@ -4,25 +4,25 @@
 export const readTokens = () => {
   if (typeof window === "undefined") {
     return {
-      fg: "#e8eef4",
-      muted: "#8aa0b4",
-      border: "#1f3346",
-      accent: "#00e6a8",
-      bull: "#16c784",
-      neutral: "#8aa0b4",
-      bear: "#f6465d"
+      fg: "#f8f4f4",
+      muted: "#a09d9c",
+      border: "#4a4746",
+      accent: "#ec3013",
+      bull: "#5fd48c",
+      neutral: "#a09d9c",
+      bear: "#ec3013"
     };
   }
   const s = getComputedStyle(document.documentElement);
   const v = (name, fallback) => (s.getPropertyValue(name) || fallback).trim();
   return {
-    fg: v("--fg", "#e8eef4"),
-    muted: v("--muted", "#8aa0b4"),
-    border: v("--border", "#1f3346"),
-    accent: v("--accent", "#00e6a8"),
-    bull: v("--bull", "#16c784"),
-    neutral: v("--neutral", "#8aa0b4"),
-    bear: v("--bear", "#f6465d")
+    fg: v("--fg", "#f8f4f4"),
+    muted: v("--muted", "#a09d9c"),
+    border: v("--border", "#4a4746"),
+    accent: v("--accent", "#ec3013"),
+    bull: v("--bull", "#5fd48c"),
+    neutral: v("--neutral", "#a09d9c"),
+    bear: v("--bear", "#ec3013")
   };
 };
 

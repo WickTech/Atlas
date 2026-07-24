@@ -10,7 +10,7 @@ export default function NewsCard({ item, onSelectTicker }) {
           src={item.bannerImage}
           alt=""
           loading="lazy"
-          className="hidden h-24 w-32 shrink-0 rounded-lg object-cover sm:block"
+          className="hidden h-24 w-32 shrink-0 object-cover sm:block"
           onError={(e) => {
             e.currentTarget.style.display = "none";
           }}

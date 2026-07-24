@@ -10,14 +10,14 @@ const SENTIMENTS = [
 export default function NewsFilters({ sentiment, onSentiment, topic, onTopic, topics }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="inline-flex rounded-lg border border-border bg-surface-2 p-0.5">
-        {SENTIMENTS.map((s) => (
+      <div className="inline-flex border border-border">
+        {SENTIMENTS.map((s, i) => (
           <button
             key={s.key}
             type="button"
             onClick={() => onSentiment(s.key)}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-              sentiment === s.key ? "bg-accent text-[#04130d]" : "text-muted hover:text-fg"
+            className={`px-2.5 py-1 text-xs font-bold transition ${i > 0 ? "border-l border-border" : ""} ${
+              sentiment === s.key ? "bg-accent text-white" : "text-muted hover:text-fg"
             }`}
           >
             {s.label}
@@ -29,7 +29,7 @@ export default function NewsFilters({ sentiment, onSentiment, topic, onTopic, to
         <select
           value={topic}
           onChange={(e) => onTopic(e.target.value)}
-          className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent"
+          className="border border-border bg-surface-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent"
         >
           <option value="all">All topics</option>
           {topics.map((t) => (
