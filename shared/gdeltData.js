@@ -2,6 +2,8 @@
 // Free, no API key, high volume — used to complement Alpha Vantage's richer (but
 // heavily rate-limited) per-article sentiment. Every fetcher self-falls-back so a
 // GDELT outage or a malformed response never breaks the dashboard payload.
+const { fetchWithTimeout } = require("./fetchWithTimeout");
+
 const GDELT_BASE = process.env.GDELT_BASE || "https://api.gdeltproject.org/api/v2/doc/doc";
 
 // Atlas is India-first: bias the query toward India + South Asia while still
@@ -32,7 +34,7 @@ const gdeltUrl = (params) => {
 // GDELT sometimes returns HTML/plain-text errors with a 200 status, so we read as
 // text first and only parse when it looks like JSON.
 const fetchGdeltJson = async (url) => {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: { Accept: "application/json", "User-Agent": "Atlas/1.0" }
   });
   if (!response.ok) throw new Error(`Request failed (${response.status})`);
@@ -127,11 +129,10 @@ const fetchWorldTone = async () => {
   }
 };
 
-// GDELT rate-limits concurrent requests, so fetch the two endpoints sequentially
-// and expose them as one promise the caller can run in parallel with other sources.
+// Two GDELT endpoints, fetched concurrently (each self-falls-back on error so
+// one throttled/failed call never blocks the other).
 const fetchGdeltBundle = async () => {
-  const news = await fetchGdeltNews();
-  const tone = await fetchWorldTone();
+  const [news, tone] = await Promise.all([fetchGdeltNews(), fetchWorldTone()]);
   return { news, tone };
 };
 

@@ -1,6 +1,8 @@
 // India + global finance radar (functional port of worldmonitor's finance radar).
 // Uses Yahoo Finance's free, no-key v8 chart endpoint. Each instrument self-falls
 // back to null so a Yahoo hiccup never breaks the payload. India-first ordering.
+const { fetchWithTimeout } = require("./fetchWithTimeout");
+
 const YF_BASE = process.env.YF_BASE || "https://query1.finance.yahoo.com/v8/finance/chart";
 
 // symbol, display name, currency, region, kind. Order = display priority (India first).
@@ -25,7 +27,7 @@ const round = (v, dp = 2) => {
 
 const fetchQuote = async (inst) => {
   try {
-    const res = await fetch(`${YF_BASE}/${encodeURIComponent(inst.symbol)}?range=5d&interval=1d`, {
+    const res = await fetchWithTimeout(`${YF_BASE}/${encodeURIComponent(inst.symbol)}?range=5d&interval=1d`, {
       headers: { "User-Agent": "Atlas/1.0", Accept: "application/json" }
     });
     if (!res.ok) throw new Error(`YF ${res.status}`);
@@ -63,12 +65,7 @@ const computeComposite = (instruments) => {
 };
 
 const fetchFinance = async () => {
-  // Yahoo tolerates light concurrency; cap it to be polite.
-  const results = [];
-  for (const inst of INSTRUMENTS) {
-    // eslint-disable-next-line no-await-in-loop
-    results.push(await fetchQuote(inst));
-  }
+  const results = await Promise.all(INSTRUMENTS.map(fetchQuote));
   return {
     instruments: results,
     composite: computeComposite(results),

@@ -98,4 +98,9 @@ const subscribe = async (res) => {
   };
 };
 
+// Pre-warm the cache at process start so the first real client request (or SSE
+// subscribe) hits a populated cache instead of paying the full upstream
+// fetch/aggregate cost on the critical path.
+getMetrics().catch(() => {});
+
 module.exports = { getMetrics, subscribe, TTL_MS, PUSH_INTERVAL_MS };
