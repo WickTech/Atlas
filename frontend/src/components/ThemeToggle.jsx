@@ -6,7 +6,7 @@ export default function ThemeToggle({ theme, onToggle }) {
       onClick={onToggle}
       aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
       title={`Switch to ${isDark ? "light" : "dark"} theme`}
-      className="grid h-9 w-9 place-content-center rounded-lg border border-border bg-surface-2 text-fg transition hover:text-accent"
+      className="grid h-9 w-9 place-content-center border border-border bg-surface-2 text-fg transition hover:text-accent"
     >
       {isDark ? (
         // sun

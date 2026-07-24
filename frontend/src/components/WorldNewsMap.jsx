@@ -24,7 +24,7 @@ export default function WorldNewsMap({ countryIndex, selectedCountry, onSelectCo
   const riskRgb = hexToRgb(
     typeof window !== "undefined"
       ? getComputedStyle(document.documentElement).getPropertyValue("--bear").trim()
-      : "#f6465d"
+      : "#ec3013"
   );
 
   const fillFor = (name) => {
@@ -35,13 +35,14 @@ export default function WorldNewsMap({ countryIndex, selectedCountry, onSelectCo
   };
 
   return (
-    <article className="panel relative p-4">
+    <article className="relative border-b border-border p-4">
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">News Map · India &amp; the World</h3>
-        <span className="text-xs text-muted">tap a country to filter</span>
+        <span className="text-[10px] font-bold uppercase tracking-[.12em] text-accent-400">
+          Live world map · click a country or search ⌘K
+        </span>
       </div>
 
-      <div className="overflow-hidden rounded-lg" style={{ background: "var(--surface-2)" }}>
+      <div className="overflow-hidden" style={{ background: "var(--surface-2)" }}>
         <ComposableMap projection="geoMercator" projectionConfig={{ scale: 140 }} height={420}>
           <ZoomableGroup center={[80, 22]} zoom={2.4} minZoom={1} maxZoom={8}>
             <Geographies geography={GEO_URL}>
@@ -85,7 +86,7 @@ export default function WorldNewsMap({ countryIndex, selectedCountry, onSelectCo
       </div>
 
       {hover && (
-        <div className="pointer-events-none absolute bottom-5 left-5 rounded-md border border-border bg-bg/90 px-2.5 py-1 text-xs text-fg shadow-panel">
+        <div className="pointer-events-none absolute bottom-9 left-5 border border-border bg-bg/95 px-2.5 py-1.5 text-xs text-fg">
           {hover}
         </div>
       )}

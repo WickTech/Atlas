@@ -47,7 +47,7 @@ export default function CommandPalette({ open, onClose, commands }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[12vh]">
       <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-border bg-bg shadow-panel">
+      <div className="relative z-10 w-full max-w-lg overflow-hidden border border-border bg-surface-2 shadow-panel">
         <input
           ref={inputRef}
           value={query}

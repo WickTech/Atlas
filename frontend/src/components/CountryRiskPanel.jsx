@@ -1,63 +1,52 @@
-import { INDIA } from "../lib/constants";
+import { countryCode, INDIA } from "../lib/constants";
+import Dossier from "./Dossier";
 
-// Ranked Country Intelligence Index. India is pinned at the top for the Indian
-// audience even if it isn't the highest-scoring; clicking a row filters the feed.
-function RiskBar({ score, max }) {
-  const pct = max ? Math.round((score / max) * 100) : 0;
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-      <div
-        className="h-full rounded-full"
-        style={{ width: `${pct}%`, background: "var(--bear)" }}
-      />
-    </div>
-  );
-}
-
+// Country Instability Index. India is pinned at the top for the Indian
+// audience even if it isn't the highest-scoring; clicking a row filters the
+// feed, syncs the map selection, and updates the Dossier callout below.
 export default function CountryRiskPanel({ countryIndex, selectedCountry, onSelectCountry }) {
   const all = countryIndex?.countries || [];
-  const max = countryIndex?.max || 1;
-
   const india = countryIndex?.india;
   const rest = all.filter((c) => c.name !== INDIA).slice(0, 8);
   const rows = india ? [india, ...rest] : rest;
+  const selected = all.find((c) => c.name === selectedCountry) || null;
 
   return (
-    <article className="panel flex flex-col p-4">
-      <h3 className="mb-3 text-sm font-semibold">Country Risk Index</h3>
+    <div className="border-b border-border px-5 py-[18px]">
+      <div className="mb-3 text-[10px] font-bold uppercase tracking-[.12em] text-accent-400">
+        Country instability index
+      </div>
       {rows.length ? (
-        <ul className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-0.5">
           {rows.map((c) => {
             const isSel = selectedCountry === c.name;
             const pinned = c.name === INDIA;
             return (
-              <li key={c.name}>
-                <button
-                  type="button"
-                  onClick={() => onSelectCountry?.(isSel ? null : c.name)}
-                  className={`w-full rounded-lg px-2 py-1.5 text-left transition hover:bg-surface-2 ${
-                    isSel ? "bg-surface-2 ring-1 ring-accent" : ""
-                  }`}
-                >
-                  <div className="mb-1 flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate font-medium">
-                      {pinned && <span className="mr-1">🇮🇳</span>}
-                      {c.name}
-                    </span>
-                    <span className="shrink-0 tabular-nums text-muted">
-                      {c.score}
-                      <span className="ml-1 text-xs">· {c.count}</span>
-                    </span>
-                  </div>
-                  <RiskBar score={c.score} max={max} />
-                </button>
-              </li>
+              <button
+                key={c.name}
+                type="button"
+                onClick={() => onSelectCountry?.(isSel ? null : c.name)}
+                className={`grid grid-cols-[30px_1fr_auto] items-center gap-2.5 px-1.5 py-1.5 text-left text-[13px] hover:bg-surface-2 ${
+                  isSel ? "bg-surface-2" : ""
+                }`}
+              >
+                <span className="border border-border px-0 py-0.5 text-center text-[10px] font-bold">
+                  {countryCode(c.name)}
+                </span>
+                <span className="truncate font-bold">
+                  {pinned && <span className="mr-1">🇮🇳</span>}
+                  {c.name}
+                </span>
+                <span className="font-bold text-accent-400">{c.score}</span>
+              </button>
             );
           })}
-        </ul>
+        </div>
       ) : (
         <p className="py-6 text-center text-sm text-muted">Waiting for country data…</p>
       )}
-    </article>
+
+      <Dossier country={selected} />
+    </div>
   );
 }

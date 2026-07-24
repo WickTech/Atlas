@@ -1,6 +1,5 @@
 const { fetchBestPerformingStock, fetchWorldNews } = require("./liveData");
 const { fetchGdeltBundle, isIndiaRelated } = require("./gdeltData");
-const { fetchGlobalMarket, fetchTopCoins, fetchBtcSeries } = require("./cryptoData");
 const { classifyArticle, ALL_CATEGORIES } = require("./categories");
 const { computeCountryIndex } = require("./countryIndex");
 const { normalizeCountryName } = require("./geo");
@@ -114,14 +113,11 @@ const computeSentiment = (news, worldTone) => {
   };
 };
 
-// Assembles the full dashboard payload from live sources (CoinGecko global +
-// markets + BTC series, Alpha Vantage stock + news, GDELT world news + tone).
-// Each source self-falls-back, so this resolves even when an upstream is down.
+// Assembles the full dashboard payload from live sources (Alpha Vantage stock +
+// news, GDELT world news + tone, Yahoo Finance instruments). Each source
+// self-falls-back, so this resolves even when an upstream is down.
 const generateMetrics = async () => {
-  const [global, topCoins, btcSeries, bestStock, avNews, gdelt, finance] = await Promise.all([
-    fetchGlobalMarket(),
-    fetchTopCoins(),
-    fetchBtcSeries(),
+  const [bestStock, avNews, gdelt, finance] = await Promise.all([
     fetchBestPerformingStock(),
     fetchWorldNews(),
     fetchGdeltBundle(),
@@ -155,20 +151,16 @@ const generateMetrics = async () => {
   const briefs = await generateBriefs(news);
 
   return {
-    cards: global.cards,
     sentiment,
     news,
     topTickers: sentiment.topTickers,
-    btcSeries,
-    topCoins,
-    dominance: global.dominance,
     bestStock,
     countryIndex,
     signals,
     categories,
     briefs,
     finance,
-    dataSources: ["CoinGecko", "Alpha Vantage", "GDELT", "Yahoo Finance"],
+    dataSources: ["Alpha Vantage", "GDELT", "Yahoo Finance"],
     updatedAt: new Date().toISOString()
   };
 };
