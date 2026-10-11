@@ -38,7 +38,7 @@ const fetchBestPerformingStock = async () => {
     return {
       symbol: topGainer.ticker,
       name: topGainer.ticker,
-      changePercent: asNumber((topGainer.change_percentage || "").replace("%", "")),
+      changePercent: asNumber((topGainer.change_percentage || "").replace(/%/g, "")),
       price: asNumber(topGainer.price),
       volume: asNumber(topGainer.volume),
       source: "Alpha Vantage"
