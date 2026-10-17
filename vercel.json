@@ -2,5 +2,8 @@
   "installCommand": "npm install --prefix frontend",
   "buildCommand": "npm run build --prefix frontend",
   "outputDirectory": "frontend/dist",
-  "framework": "vite"
+  "framework": "vite",
+  "functions": {
+    "api/metrics.js": { "maxDuration": 30 }
+  }
 }
