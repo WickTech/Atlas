@@ -1,114 +1,52 @@
 # Atlas 🌍
 
-A full-stack **world news & market-sentiment** dashboard:
+Real-time global situational-awareness console — country risk, cross-stream signals, markets and world news on a GPU-rendered globe. Built entirely on free, keyless, open data and deployed as a zero-config Next.js app on Vercel.
 
-- **Backend**: Node.js + Express REST API + SSE stream (for local development)
-- **Frontend**: React + Vite + Tailwind CSS + Chart.js (light/dark themes)
-- **Deployment**: Vercel static frontend + serverless `/api/*` endpoints
-- **Live data**:
-  - **GDELT** (free, no key) — high-volume global news + tone + country
-  - **Alpha Vantage** — rich per-article sentiment (score/label, topics, ticker sentiment) + top stock
-  - **CoinGecko** (free, no key) — supporting crypto-market context
+**Live:** https://atlas-eight-fawn.vercel.app
 
-## Features
+## Stack
 
-- News & sentiment-first layout: searchable/filterable global news feed with
-  per-article sentiment chips, timestamps, summaries, topics and ticker tags.
-- Sentiment overview: market-mood gauge, distribution doughnut, sentiment trend,
-  top mentioned tickers (click a ticker to drill down).
-- KPI strip with deltas + sparklines (market cap, dominance, volume, active markets).
-- Asset drill-down drawer: price, 24h/7d change, volume, mini chart + related news.
-- Market context section: Bitcoin price with 24h / 7d / 30d range toggle, top coins
-  (click to drill down), dominance, best-performing stock.
-- Light/dark theme (persisted, respects OS preference).
-- Resilient: every source self-falls-back, and the last good news feed is retained
-  through transient upstream gaps so the dashboard never goes blank.
+- **Next.js 16** (App Router) + **React 19** + **TypeScript** (strict, `noUncheckedIndexedAccess`)
+- **Tailwind CSS v4** — Modernist design tokens (ink / red / Archivo, 0 radius) + HUD layer (JetBrains Mono telemetry, glass map overlays)
+- **MapLibre GL v6** — WebGL globe, feature-state choropleth, lazy-loaded map chunk + self-hosted tile worker
+- **TanStack Query** — polling that pauses in background tabs, exponential backoff, last-good-data retention
+- **Vitest** — unit tests for the whole server data pipeline
 
-## Project structure
+## Data sources (all free)
+
+| Source | Used for | Key |
+| --- | --- | --- |
+| Publisher RSS (The Hindu, NDTV, TOI, Mint, ET, BBC, Al Jazeera, DW, France 24, Guardian, NPR, UN News) | News backbone, subject-country tagging | none |
+| GDELT DOC 2.0 | Supplementary world news + tone (throttled to 1 req / 5 s per IP, so best-effort) | none |
+| Yahoo Finance chart API | India + global markets | none |
+| Alpha Vantage | Per-article sentiment, top gainer | optional `ALPHA_VANTAGE_API_KEY` |
+| Groq / OpenRouter (`openrouter/free`) | AI briefs, deterministic fallback otherwise | optional `GROQ_API_KEY` / `OPENROUTER_API_KEY` |
+| OpenFreeMap (OSM) · CARTO fallback | Vector basemaps | none |
+
+## Architecture
 
 ```
-api/                  # Vercel serverless functions
-backend/              # Local Express backend
-frontend/             # React app
-shared/               # Shared data generators
+app/
+  page.tsx               static shell → <Console/> (client)
+  api/metrics/route.ts   aggregated payload; CDN cached (s-maxage=60, swr=300)
+  api/health/route.ts
+src/
+  server/                data pipeline: fetchers (all via fetchWithTimeout), RSS parser,
+                         country gazetteer, risk index, signals, sentiment, LLM chain, TTL cache
+  map/                   MapLibre globe (dynamic import, ssr: false), basemaps, geometry fixes
+  components/            HUD (top bar, palette, banner) + console modules
+  types/metrics.ts       wire contract shared by server and client
 ```
 
-## Run locally
+Resilience: every upstream self-falls-back; the route coalesces concurrent cold requests into one fetch, serves the last good payload on failure, and keeps the last real news feed if a refresh comes back empty.
 
-### 1) Start backend
+## Develop
 
 ```bash
-cd backend
 npm install
-npm start
+cp .env.example .env.local   # optional keys
+npm run dev                  # http://localhost:3000
+npm run typecheck && npm run lint && npm test && npm run build
 ```
 
-Backend runs on `http://localhost:5000` and serves `/api/metrics`.
-
-### 2) Start frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend runs on `http://localhost:5173`.
-
-## Live finance + world news data
-
-The app requests real-time-ish market and news data from Alpha Vantage and merges it into `/api/metrics`:
-
-- Best performing stock (symbol, change %, price, volume)
-- News list for world/financial markets (shown in dashboard corner)
-
-### Configure API key
-
-Set this env var in local shell and in Vercel project settings:
-
-```bash
-ALPHA_VANTAGE_API_KEY=your_key_here
-```
-
-If the key is missing or rate-limited, GDELT still supplies the global news feed and
-the UI shows safe fallback values for the Alpha-Vantage-only fields.
-
-GDELT requires **no API key**. Optional tuning env vars:
-
-```bash
-GDELT_QUERY="(economy OR markets OR finance OR geopolitics)"  # GDELT search query
-METRICS_TTL_MS=300000   # snapshot cache TTL (raise in prod to ease rate limits)
-```
-
-## Deploy on Vercel
-
-1. Push this repository to GitHub.
-2. In Vercel, create a **New Project** and import the repo.
-3. Leave the **Root Directory** as the repository root.
-4. Vercel uses `vercel.json`:
-   - Install command: `npm install --prefix frontend`
-   - Build command: `npm run build --prefix frontend`
-   - Output directory: `frontend/dist`
-5. In Vercel → Project Settings → Environment Variables, add:
-   - `ALPHA_VANTAGE_API_KEY`
-6. Deploy.
-
-After deploy:
-
-- Frontend is served from Vercel static hosting.
-- API endpoints are served by Vercel serverless functions:
-  - `/api/health`
-  - `/api/metrics`
-
-### Optional frontend environment variable
-
-Use this only when frontend should call a different backend URL:
-
-```bash
-VITE_API_URL=https://your-api.example.com
-```
-
-By default:
-
-- Local dev frontend calls `http://localhost:5000`
-- Production frontend calls same-origin `/api/metrics` (Vercel functions)
+Feature concepts adapted from [koala73/worldmonitor](https://github.com/koala73/worldmonitor) (AGPL-3.0) — ideas only, no code copied.
