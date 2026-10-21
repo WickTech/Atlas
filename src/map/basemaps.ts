@@ -1,10 +1,6 @@
 // Token-free vector basemaps. OpenFreeMap (OSM data, no usage caps) is primary;
 // CARTO GL styles (free with attribution) are the fallback if it's unreachable.
 import type { Theme } from "@/hooks/useTheme";
-import { version as maplibreVersion } from "maplibre-gl/package.json";
-
-/** Copied into public/ by scripts/copy-maplibre-worker.mjs (pre-dev / pre-build). */
-export const MAPLIBRE_WORKER_URL = `/vendor/maplibre-gl-worker-${maplibreVersion}.mjs`;
 
 export const BASEMAPS: Record<Theme, { primary: string; fallback: string }> = {
   dark: {
