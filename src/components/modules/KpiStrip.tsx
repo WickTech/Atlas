@@ -21,11 +21,11 @@ export function KpiStrip({ metrics }: { metrics: Metrics }) {
   ];
 
   return (
-    <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <section className="grid grid-cols-2 gap-px border-b border-border bg-border">
       {cards.map((c) => (
-        <article key={c.label} className="panel flex flex-col gap-1 p-4">
-          <p className="text-xs tracking-wide text-muted uppercase">{c.label}</p>
-          <p className="text-2xl font-bold" style={c.accent ? { color: c.accent } : undefined}>
+        <article key={c.label} className="flex flex-col gap-0.5 bg-surface px-4 py-3">
+          <p className="text-[10px] tracking-wider text-muted uppercase">{c.label}</p>
+          <p className="text-xl font-bold" style={c.accent ? { color: c.accent } : undefined}>
             {c.value}
           </p>
         </article>

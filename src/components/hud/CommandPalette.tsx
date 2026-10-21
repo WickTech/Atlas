@@ -22,8 +22,8 @@ export function CommandPalette({ onClose, commands }: { onClose: () => void; com
 
   const choose = (cmd: Command | undefined) => {
     if (!cmd) return;
+    onClose(); // close first so a command may open another overlay
     cmd.run();
-    onClose();
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

@@ -9,7 +9,7 @@ export function SentimentGauge({ overall }: { overall: Sentiment["overall"] }) {
   const pct = ((Math.max(-1, Math.min(1, score ?? 0)) + 1) / 2) * 100;
 
   return (
-    <div className="panel flex flex-col justify-center p-5">
+    <div className="flex flex-col justify-center border-b border-border px-5 py-4">
       <p className="mb-3 text-xs tracking-wide text-muted uppercase">Market Mood</p>
       <div
         className="relative mb-3 h-1.5 w-full bg-neutral/30"

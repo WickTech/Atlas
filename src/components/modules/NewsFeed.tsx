@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 
-import type { Scope } from "@/lib/constants";
 import { sentimentBucket, type Bucket } from "@/lib/format";
+import { effectiveCategory, filterNews, type NewsFilter } from "@/lib/news";
 import type { CategoryCount, EnrichedArticle } from "@/types/metrics";
 
 import { NewsCard } from "./NewsCard";
@@ -24,10 +24,8 @@ const chipBtn = (active: boolean) =>
 
 interface Props {
   news: EnrichedArticle[];
-  search: string;
-  scope: Scope;
+  filter: NewsFilter;
   selectedCountry: string | null;
-  category: string;
   categories: CategoryCount[];
   onCategory: (key: string) => void;
   onClearCountry: () => void;
@@ -36,33 +34,33 @@ interface Props {
 
 // India/World scope, category sections, sentiment/topic filters, search and
 // country drill-down all narrow the same feed.
-export function NewsFeed({ news, search, scope, selectedCountry, category, categories, onCategory, onClearCountry, onSelectTicker }: Props) {
+export function NewsFeed({ news, filter, selectedCountry, categories, onCategory, onClearCountry, onSelectTicker }: Props) {
+  const { scope } = filter;
+  const category = effectiveCategory(filter);
   const [sentiment, setSentiment] = useState<Bucket | "all">("all");
   const [topic, setTopic] = useState("all");
   const [visible, setVisible] = useState(PAGE_SIZE);
 
   const topics = useMemo(() => [...new Set(news.flatMap((n) => n.topics))].sort(), [news]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return news.filter((n) => {
-      if (scope === "india" && !n.indiaRelated) return false;
-      if (selectedCountry && n.countryNorm !== selectedCountry) return false;
-      if (category !== "all" && n.category !== category) return false;
-      if (sentiment !== "all" && sentimentBucket(n.sentimentLabel) !== sentiment) return false;
-      if (topic !== "all" && !n.topics.includes(topic)) return false;
-      if (q && !`${n.title} ${n.summary} ${n.source ?? ""}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [news, scope, selectedCountry, category, sentiment, topic, search]);
+  const filtered = useMemo(
+    () =>
+      filterNews(news, filter).filter((n) => {
+        if (selectedCountry && n.countryNorm !== selectedCountry) return false;
+        if (sentiment !== "all" && sentimentBucket(n.sentimentLabel) !== sentiment) return false;
+        if (topic !== "all" && !n.topics.includes(topic)) return false;
+        return true;
+      }),
+    [news, filter, selectedCountry, sentiment, topic]
+  );
 
   const reset = () => setVisible(PAGE_SIZE);
 
   return (
-    <section className="panel flex flex-col gap-3 p-4">
+    <section className="flex flex-col gap-3 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">
-          {scope === "india" ? "India News & Sentiment" : "World News & Sentiment"}
+        <h2 className="text-base font-semibold">
+          {scope === "india" ? "India news" : "World news"}
           <span className="telemetry ml-2 text-sm font-normal text-muted">{filtered.length} stories</span>
         </h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -131,7 +129,7 @@ export function NewsFeed({ news, search, scope, selectedCountry, category, categ
         </div>
       )}
 
-      <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
+      <div className="flex flex-col gap-2">
         {filtered.length ? (
           filtered.slice(0, visible).map((item) => <NewsCard key={`${item.url}-${item.title}`} item={item} onSelectTicker={onSelectTicker} />)
         ) : (

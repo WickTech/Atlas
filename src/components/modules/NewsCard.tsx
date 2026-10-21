@@ -5,7 +5,7 @@ import type { Article } from "@/types/metrics";
 /** One article: image, title, source/time, sentiment chip, summary, topic + ticker chips. */
 export function NewsCard({ item, onSelectTicker }: { item: Article; onSelectTicker?: (ticker: string) => void }) {
   return (
-    <article className="panel flex shrink-0 gap-3 overflow-hidden p-3 transition-colors hover:border-accent">
+    <article className="@container panel flex shrink-0 gap-3 overflow-hidden p-3 transition-colors hover:border-accent">
       {item.bannerImage ? (
         <img
           src={item.bannerImage}
@@ -13,7 +13,7 @@ export function NewsCard({ item, onSelectTicker }: { item: Article; onSelectTick
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          className="hidden h-24 w-32 shrink-0 object-cover sm:block"
+          className="hidden h-16 w-24 shrink-0 object-cover @sm:block"
           onError={(e) => {
             e.currentTarget.style.display = "none";
           }}
@@ -26,7 +26,7 @@ export function NewsCard({ item, onSelectTicker }: { item: Article; onSelectTick
           <span className={`chip ml-auto shrink-0 ${sentimentChipClass(item.sentimentLabel)}`}>{item.sentimentLabel || "Neutral"}</span>
         </div>
 
-        <a href={item.url} target="_blank" rel="noreferrer" className="block leading-snug font-semibold text-fg hover:text-accent">
+        <a href={item.url} target="_blank" rel="noreferrer" className="block text-sm leading-snug font-semibold text-fg hover:text-accent">
           {item.title}
         </a>
 

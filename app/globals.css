@@ -159,3 +159,17 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Status-bar headline tape: one full track width per cycle; pauses on hover/focus. */
+.tape {
+  animation: tape 90s linear infinite;
+}
+.tape:hover,
+.tape:focus-within {
+  animation-play-state: paused;
+}
+@keyframes tape {
+  to {
+    transform: translateX(-50%);
+  }
+}
