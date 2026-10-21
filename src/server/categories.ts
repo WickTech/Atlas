@@ -45,6 +45,8 @@ const TOPIC_MAP: Record<string, string> = {
 const keywordRes = new Map(
   CATEGORIES.map((c) => [
     c.key,
+    // Built only from the constant, escaped keyword lists above (literal alternation, no user input).
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
     new RegExp(`\\b(${c.keywords.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "i")
   ])
 );

@@ -145,6 +145,8 @@ for (const [name, aliases] of Object.entries(ALIASES)) {
 
 // Longest alias first so "papua new guinea" wins over "guinea" and
 // "south sudan" over "sudan" at the same position.
+// Built only from the constant, escaped alias tables above (literal alternation, no user input).
+// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
 const ALIAS_RE = new RegExp(
   `(?<![\\w.])(${[...aliasToCountry.keys()].sort((a, b) => b.length - a.length).map(escape).join("|")})(?![\\w])`,
   "gi"
