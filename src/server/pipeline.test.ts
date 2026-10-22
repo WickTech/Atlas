@@ -163,3 +163,19 @@ describe("retainLastGoodNews", () => {
     expect(retainLastGoodNews(real, empty)).toBe(real);
   });
 });
+
+describe("createKeyedCache", () => {
+  it("caches per key and evicts the oldest past the bound", async () => {
+    const { createKeyedCache } = await import("./cache");
+    const load = vi.fn(async (k: string) => k.toUpperCase());
+    const c = createKeyedCache(load, 60_000, 2);
+    expect((await c.get("a")).data).toBe("A");
+    await c.get("a");
+    await c.get("b");
+    await c.get("c");
+    expect(load).toHaveBeenCalledTimes(3);
+    expect(c.size()).toBe(2);
+    await c.get("a"); // evicted -> reloads
+    expect(load).toHaveBeenCalledTimes(4);
+  });
+});

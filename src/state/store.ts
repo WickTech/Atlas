@@ -6,15 +6,27 @@ export const TELEMETRY_WINDOW = 30;
 
 const layer = (enabled: boolean): LayerState => ({ enabled, opacity: 1, status: "idle", count: 0 });
 
-export const LAYER_IDS: LayerId[] = ["risk", "news"];
+export const LAYER_IDS: LayerId[] = ["risk", "news", "quakes", "hazards", "flights", "cyber", "cctv", "broadcasts", "strategic"];
 
 export const initialState = (): ConsoleState => ({
-  layers: { risk: layer(true), news: layer(true) },
+  // Light-but-meaningful default: global feeds on; flights (zoom-gated), the
+  // London-only CCTV set and static reference data are opt-in.
+  layers: {
+    risk: layer(true),
+    news: layer(true),
+    quakes: layer(true),
+    hazards: layer(true),
+    flights: layer(false),
+    cyber: layer(true),
+    cctv: layer(false),
+    broadcasts: layer(true),
+    strategic: layer(false)
+  },
   filters: { scope: "india", lens: "World", category: "all", search: "" }, // India-first audience
   viewport: { center: [80, 22], zoom: 2.4 },
   selection: null,
   telemetry: {},
-  ui: { leftOpen: true, rightOpen: true, rightTab: "intel", modal: null, ticker: null }
+  ui: { leftOpen: true, rightOpen: true, rightTab: "intel", modal: null, media: null, ticker: null }
 });
 
 export const useConsole = create<ConsoleStore>()((set) => ({
@@ -22,7 +34,14 @@ export const useConsole = create<ConsoleStore>()((set) => ({
 
   toggleLayer: (id) => set((s) => ({ layers: { ...s.layers, [id]: { ...s.layers[id], enabled: !s.layers[id].enabled } } })),
 
-  setLayer: (id, patch) => set((s) => ({ layers: { ...s.layers, [id]: { ...s.layers[id], ...patch } } })),
+  // No-op when nothing changes: status reporters call this every render, and a
+  // fresh object each time would re-render every subscriber (or loop).
+  setLayer: (id, patch) =>
+    set((s) => {
+      const cur = s.layers[id];
+      const changed = (Object.keys(patch) as (keyof LayerState)[]).some((k) => cur[k] !== patch[k]);
+      return changed ? { layers: { ...s.layers, [id]: { ...cur, ...patch } } } : s;
+    }),
 
   setFilters: (patch) => set((s) => ({ filters: { ...s.filters, ...patch } })),
 

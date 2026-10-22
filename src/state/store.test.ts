@@ -18,6 +18,12 @@ describe("console store", () => {
     expect(before.news.enabled).toBe(true);
   });
 
+  it("setLayer is referentially stable when the patch changes nothing", () => {
+    const before = useConsole.getState().layers;
+    useConsole.getState().setLayer("risk", { enabled: true, opacity: 1 });
+    expect(useConsole.getState().layers).toBe(before);
+  });
+
   it("selectCountry toggles off when re-selected", () => {
     const { selectCountry } = useConsole.getState();
     selectCountry("India");

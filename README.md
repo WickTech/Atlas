@@ -23,6 +23,13 @@ Real-time global situational-awareness console — country risk, cross-stream si
 | Alpha Vantage | Per-article sentiment, top gainer | optional `ALPHA_VANTAGE_API_KEY` |
 | Groq / OpenRouter (`openrouter/free`) | AI briefs, deterministic fallback otherwise | optional `GROQ_API_KEY` / `OPENROUTER_API_KEY` |
 | OpenFreeMap (OSM) · CARTO fallback | Vector basemaps | none |
+| USGS real-time feed | Earthquakes M2.5+ (browser-direct, CORS-open) | none |
+| NASA EONET · GDACS | Natural events + disaster impact alerts (via `/api/hazards`) | none |
+| adsb.lol (ODbL) | Live aircraft in the visible area (via `/api/flights`) | none |
+| IODA (Georgia Tech) · abuse.ch Feodo Tracker | Internet outages by country, botnet C2 hosting (via `/api/cyber`) | none |
+| TfL JamCams (OGL) | London traffic-camera stills (via `/api/cctv`) | none |
+| YouTube live embeds | 24/7 news channels (privacy-enhanced `youtube-nocookie`) | none |
+| U.S. EIA · Lloyd's List · ICG CrisisWatch | Static reference: chokepoints, major ports, flashpoint areas | none |
 
 ## Architecture
 
@@ -30,12 +37,16 @@ Real-time global situational-awareness console — country risk, cross-stream si
 app/
   page.tsx               static shell → <Console/> (client)
   api/metrics/route.ts   aggregated payload; CDN cached (s-maxage=60, swr=300)
+  api/{hazards,cyber,cctv,flights}/route.ts
+                         live-layer proxies: per-source timeouts, in-instance coalescing,
+                         CDN s-maxage tuned per feed (10 s flights … 1 h cameras)
   api/health/route.ts
 src/
   server/                data pipeline: fetchers (all via fetchWithTimeout), RSS parser,
                          country gazetteer, risk index, signals, sentiment, LLM chain, TTL cache
   state/                 Zustand store + typed contracts + URL sync
-  layers/registry.ts     layer definitions (label, hotkey, method, source) → dock, palette, help
+  layers/                registry (label, hotkey, method, source) → dock/palette/help;
+                         pure upstream parsers → normalized GeoItem; useLiveLayers queries
   map/                   MapCanvas (dynamic import, ssr: false), deck.gl layer factories, geometry
   components/hud/        top bar, layer dock, tabbed intel panel / mobile sheet, status rail, palette
   components/modules/    risk index, signals, markets, news feed, briefs
@@ -47,9 +58,13 @@ Resilience: every upstream self-falls-back; the route coalesces concurrent cold 
 ## Console
 
 - Full-bleed globe with a floating **layer dock** (live entity counts, status, opacity), a docked **intel panel** (Intel · Markets · News · Brief), and a **status rail** showing which sources contributed to the current refresh, API latency and a headline tape.
-- Radar pings on the busiest news hotspots are driven from `requestAnimationFrame` straight into deck.gl (`overlay.setProps`), not React state, so they cost no re-renders. They're disabled under `prefers-reduced-motion`.
+- **Nine layers** in five groups: regional risk, live news, earthquakes, disasters, aircraft, internet outages, chokepoints & ports, traffic cameras, live TV. Each fetches only while it's on, polls at a cadence matched to its source, pauses in background tabs, and reports status/count/errors to the dock. Small slow-moving layers persist to localStorage and repaint instantly on reload.
+- Aircraft are fetched for the visible box only (zoom ≥ 4, 2°-quantized so pans share cache keys) and drawn radar-style: a dot at barometric altitude plus a heading tail scaled to ground speed.
+- Click a camera or TV marker for a floating viewer (map stays interactive); click anything else for a pinned summary card with its source link.
+- Radar pings on the busiest news hotspots are MapLibre DOM markers animated purely in CSS (compositor thread, zero per-frame JS, off under `prefers-reduced-motion`).
+- Rendering notes: deck.gl primitives are lifted 3 km off the globe so they don't z-fight with MapLibre's sphere, and aircraft tails use `PathLayer` because `LineLayer` doesn't draw under the globe projection.
 - Every view is a URL: `?l=risk,news&v=20,25,1.6&s=world&c=France` restores layers, camera, scope and selection.
-- Keyboard: `⌘K` palette · `/` search · `[` `]` panels · `1–4` tabs · `R` `N` layers · `Esc` · `?` help.
+- Keyboard: `⌘K` palette · `/` search · `[` `]` panels · `1–4` tabs · layers `R` `N` `E` `H` `F` `C` `P` `V` `B` · `Esc` · `?` help.
 
 ## Develop
 
