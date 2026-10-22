@@ -3,9 +3,9 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { bboxToPoint, MAX_RADIUS_NM, parseAdsb, parseBBox, parseFeodo, parseIoda, parseTfl } from "@/server/live";
+import { bboxToPoint, MAX_RADIUS_NM, parseAdsb, parseBBox, parseFeodo, parseGdacsRss, parseIoda, parseTfl } from "@/server/live";
 
-import { parseEonet, parseGdacs, parseUsgs, quakeSeverity } from "./parse";
+import { parseEonet, parseUsgs, quakeSeverity } from "./parse";
 import { broadcastItems, parseStrategic, type StrategicFile } from "./static";
 import { cyberItems, outageSeverity } from "./useLiveLayers";
 
@@ -48,17 +48,29 @@ describe("parseEonet", () => {
   });
 });
 
-describe("parseGdacs", () => {
-  it("maps alert levels and event types", () => {
-    const out = parseGdacs({
-      features: [
-        { geometry: { type: "Point", coordinates: [124.9, 21.2] }, properties: { eventtype: "TC", eventid: 1, name: "Tropical Cyclone CHAMPI-26", alertlevel: "Orange", country: "Philippines", url: { report: "https://g/r" } } },
-        { geometry: { type: "Point", coordinates: [124.9, 21.2] }, properties: { eventtype: "TC", eventid: 1, alertlevel: "Orange" } },
-        { geometry: { type: "Polygon", coordinates: [] }, properties: { eventtype: "FL", eventid: 2 } }
-      ]
-    });
+describe("parseGdacsRss", () => {
+  const xml = `<?xml version="1.0" encoding="utf-8"?><rss xmlns:gdacs="http://www.gdacs.org" xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#"><channel>
+<item><title>Red earthquake (Magnitude 7M, Depth:18km) in China</title><link>http://www.gdacs.org/report.aspx?eventtype=EQ&amp;eventid=1573141</link>
+<gdacs:alertlevel>Red</gdacs:alertlevel><gdacs:eventtype>EQ</gdacs:eventtype><gdacs:eventid>1573141</gdacs:eventid><gdacs:country>China</gdacs:country>
+<gdacs:severity>Magnitude 7M, Depth:18km</gdacs:severity><gdacs:iscurrent>true</gdacs:iscurrent><gdacs:todate>Thu, 22 Oct 2026 14:33:40 GMT</gdacs:todate>
+<geo:Point><geo:lat>32.3805</geo:lat><geo:long>93.7797</geo:long></geo:Point></item>
+<item><title>dup</title><gdacs:alertlevel>Red</gdacs:alertlevel><gdacs:eventtype>EQ</gdacs:eventtype><gdacs:eventid>1573141</gdacs:eventid><gdacs:iscurrent>true</gdacs:iscurrent><geo:Point><geo:lat>1</geo:lat><geo:long>1</geo:long></geo:Point></item>
+<item><title>Small fire</title><gdacs:alertlevel>Green</gdacs:alertlevel><gdacs:eventtype>WF</gdacs:eventtype><gdacs:eventid>5</gdacs:eventid><gdacs:iscurrent>true</gdacs:iscurrent><geo:Point><geo:lat>1</geo:lat><geo:long>1</geo:long></geo:Point></item>
+<item><title>Old flood</title><gdacs:alertlevel>Orange</gdacs:alertlevel><gdacs:eventtype>FL</gdacs:eventtype><gdacs:eventid>9</gdacs:eventid><gdacs:iscurrent>false</gdacs:iscurrent><geo:Point><geo:lat>1</geo:lat><geo:long>1</geo:long></geo:Point></item>
+</channel></rss>`;
+  it("keeps current events once, maps level/type, upgrades links to https", () => {
+    const out = parseGdacsRss(xml);
     expect(out).toHaveLength(1);
-    expect(out[0]).toMatchObject({ id: "gdacs:TC:1", severity: "medium", category: "severeStorms", url: "https://g/r", source: "GDACS" });
+    expect(out[0]).toMatchObject({
+      id: "gdacs:EQ:1573141",
+      coord: [93.7797, 32.3805],
+      severity: "high",
+      category: "earthquakes",
+      url: "https://www.gdacs.org/report.aspx?eventtype=EQ&eventid=1573141",
+      ts: "2026-10-22T14:33:40.000Z",
+      facts: ["GDACS Red alert", "Magnitude 7M, Depth:18km", "China"]
+    });
+    expect(parseGdacsRss("<html/>")).toEqual([]);
   });
 });
 
@@ -84,6 +96,9 @@ describe("flights", () => {
           { hex: "abc", flight: "BAW12  ", lat: 51.5, lon: -0.1, alt_baro: 35000, gs: 450.4, track: 90.6, t: "A320", dbFlags: 0 },
           { hex: "def", lat: 51.4, lon: 0.2, alt_baro: "ground", gs: 3, track: 0, dbFlags: 1 },
           { hex: "out", lat: 60, lon: 10, alt_baro: 1000 },
+          { hex: "twr", lat: 51.47, lon: -0.45, alt_baro: "ground", t: "TWR" },
+          { hex: "veh", flight: "@@@@@@@@", lat: 51.47, lon: -0.45, alt_baro: "ground" },
+          { hex: "c2", lat: 51.47, lon: -0.45, alt_baro: "ground", category: "C2" },
           { flight: "nohex", lat: 51, lon: 0 }
         ]
       },

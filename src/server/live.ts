@@ -1,8 +1,11 @@
 // Server-side fetchers for live map layers. Each returns normalized GeoItems
 // (see src/layers/types.ts) and never throws: a failed upstream yields [] plus
 // an error string the route surfaces as a source status.
-import { parseEonet, parseGdacs } from "@/layers/parse";
+import { XMLParser } from "fast-xml-parser";
+
+import { parseEonet } from "@/layers/parse";
 import type { GeoItem } from "@/layers/types";
+import type { Severity } from "@/types/metrics";
 
 import { fetchWithTimeout, USER_AGENT } from "./fetchWithTimeout";
 
@@ -35,12 +38,76 @@ export const settle = async <T>(source: string, run: () => Promise<T[]>): Promis
   }
 };
 
+// ---------- GDACS alerts (RSS) ----------
+// The JSON API (geteventlist/EVENTS4APP) hangs for 20-45 s from both local and
+// Vercel egress; the RSS feed carries the same alerts and answers in ~2 s.
+const GDACS_TYPE: Record<string, string> = { EQ: "earthquakes", TC: "severeStorms", FL: "floods", VO: "volcanoes", DR: "drought", WF: "wildfires", TS: "tsunami" };
+const GDACS_SEV: Record<string, Severity> = { Red: "high", Orange: "medium", Green: "low" };
+
+const gdacsXml = new XMLParser({ ignoreAttributes: true, isArray: (n) => n === "item", processEntities: true, htmlEntities: true });
+
+interface GdacsRssItem {
+  title?: string;
+  link?: string;
+  "gdacs:alertlevel"?: string;
+  "gdacs:eventtype"?: string;
+  "gdacs:eventid"?: string | number;
+  "gdacs:country"?: string;
+  "gdacs:severity"?: string;
+  "gdacs:iscurrent"?: string | boolean;
+  "gdacs:todate"?: string;
+  "geo:Point"?: { "geo:lat"?: number | string; "geo:long"?: number | string };
+}
+
+export const parseGdacsRss = (xml: string): GeoItem[] => {
+  const doc = gdacsXml.parse(xml) as { rss?: { channel?: { item?: GdacsRssItem[] } } };
+  const seen = new Set<string>();
+  return (doc.rss?.channel?.item ?? []).flatMap((it): GeoItem[] => {
+    const type = it["gdacs:eventtype"];
+    const id = it["gdacs:eventid"];
+    const lat = Number(it["geo:Point"]?.["geo:lat"]);
+    const lng = Number(it["geo:Point"]?.["geo:long"]);
+    // Only events still in progress; the feed also carries recently closed ones.
+    if (String(it["gdacs:iscurrent"]) !== "true" || !type || id == null || !Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+    const level = it["gdacs:alertlevel"] ?? "Green";
+    // Green wildfires are ~90% of the feed and mostly small; EONET already
+    // carries notable fires. Orange/Red alerts of every type are always kept.
+    if (type === "WF" && level === "Green") return [];
+    const key = `gdacs:${type}:${id}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    const t = Date.parse(it["gdacs:todate"] ?? "");
+    const facts = [`GDACS ${level} alert`];
+    if (it["gdacs:severity"]) facts.push(String(it["gdacs:severity"]).trim());
+    if (it["gdacs:country"]) facts.push(String(it["gdacs:country"]));
+    return [
+      {
+        id: key,
+        kind: "hazard",
+        coord: [lng, lat],
+        title: String(it.title ?? `${type} event`).trim(),
+        ts: Number.isFinite(t) ? new Date(t).toISOString() : null,
+        severity: GDACS_SEV[level] ?? "low",
+        source: "GDACS",
+        url: it.link?.replace(/^http:/, "https:"),
+        facts,
+        category: GDACS_TYPE[type] ?? type.toLowerCase()
+      }
+    ];
+  });
+};
+
+const getText = async (url: string, timeoutMs = 8000): Promise<string> => {
+  const res = await fetchWithTimeout(url, { headers: { "User-Agent": USER_AGENT } }, timeoutMs);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.text();
+};
+
 // ---------- hazards: NASA EONET + GDACS ----------
 export const fetchHazards = async (): Promise<LivePayload> => {
   const [eonet, gdacs] = await Promise.all([
     settle("NASA EONET", async () => parseEonet(await getJson("https://eonet.gsfc.nasa.gov/api/v3/events/geojson?status=open&days=30"))),
-    // GDACS has been observed hanging >45 s; keep its budget tight.
-    settle("GDACS", async () => parseGdacs(await getJson("https://www.gdacs.org/gdacsapi/api/events/geteventlist/EVENTS4APP", 9000)))
+    settle("GDACS", async () => parseGdacsRss(await getText("https://www.gdacs.org/xml/rss.xml", 9000)))
   ]);
   return { items: [...gdacs.items, ...eonet.items], sources: [eonet.result, gdacs.result], fetchedAt: new Date().toISOString() };
 };
@@ -72,6 +139,12 @@ export const bboxToPoint = ([w, s, e, n]: BBox) => {
   return { lat, lng, radiusNm: Math.min(MAX_RADIUS_NM, Math.ceil(Math.hypot(dLat, dLng))) };
 };
 
+// Airport surface transponders (tower, service vehicles, test units) also
+// broadcast ADS-B; they aren't aircraft.
+const GROUND_TYPES = new Set(["TWR", "SERV", "GND", "GRND", "EMER"]);
+const isGroundVehicle = (a: AdsbAircraft) =>
+  GROUND_TYPES.has((a.t ?? "").toUpperCase()) || /^@+$|^GNDTEST$/i.test((a.flight ?? "").trim()) || a.category === "C1" || a.category === "C2";
+
 interface AdsbAircraft {
   hex?: string;
   flight?: string;
@@ -82,13 +155,14 @@ interface AdsbAircraft {
   track?: number;
   t?: string;
   dbFlags?: number | null;
+  category?: string; // DO-260B emitter category; C1/C2 = surface vehicles
 }
 
 export const parseAdsb = (json: unknown, bbox: BBox): FlightTuple[] => {
   const ac = (json as { ac?: AdsbAircraft[] })?.ac ?? [];
   const [w, s, e, n] = bbox;
   return ac.flatMap((a): FlightTuple[] => {
-    if (!a.hex || typeof a.lat !== "number" || typeof a.lon !== "number") return [];
+    if (!a.hex || typeof a.lat !== "number" || typeof a.lon !== "number" || isGroundVehicle(a)) return [];
     // The point query covers a circle; trim to the requested box.
     if (a.lon < w || a.lon > e || a.lat < s || a.lat > n) return [];
     const alt = a.alt_baro === "ground" ? -1 : typeof a.alt_baro === "number" ? Math.round(a.alt_baro) : 0;
