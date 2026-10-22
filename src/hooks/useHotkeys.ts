@@ -20,6 +20,7 @@ export const SHORTCUTS: Shortcut[] = [
   { keys: "[", label: "Toggle layer dock" },
   { keys: "]", label: "Toggle intel panel" },
   { keys: "1–4", label: "Intel · Markets · News · Brief tabs" },
+  { keys: "G", label: "Pick a location to inspect" },
   { keys: "Esc", label: "Close overlay / viewer / clear selection" },
   { keys: "?", label: "This help" }
 ];
@@ -42,6 +43,7 @@ export function useHotkeys(searchRef: React.RefObject<HTMLInputElement | null>) 
       }
       if (e.key === "Escape") {
         if (s.ui.modal) s.setUi({ modal: null });
+        else if (s.ui.picking) s.setUi({ picking: false });
         else if (s.ui.ticker) s.setUi({ ticker: null });
         else if (s.ui.media) s.setUi({ media: null });
         else if (isTyping(e.target)) (e.target as HTMLElement).blur();
@@ -53,6 +55,8 @@ export function useHotkeys(searchRef: React.RefObject<HTMLInputElement | null>) 
       if (e.key === "/") {
         e.preventDefault();
         searchRef.current?.focus();
+      } else if (e.key === "g" || e.key === "G") {
+        s.setUi({ picking: !s.ui.picking });
       } else if (e.key === "?") {
         s.setUi({ modal: "help" });
       } else if (e.key === "[") {

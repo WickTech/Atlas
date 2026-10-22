@@ -19,16 +19,16 @@ const GROUPS: LayerGroup[] = ["Intel", "Hazards", "Movement", "Infrastructure", 
 const byGroup = GROUPS.map((g) => [g, LAYERS.filter((l) => l.group === g)] as const).filter(([, ls]) => ls.length);
 
 /** Floating glass dock over the map: per-layer switch, live entity count, status, opacity. */
-export function LayerDock() {
-  const open = useConsole((s) => s.ui.leftOpen);
+export function LayerDock({ collapsed = false }: { collapsed?: boolean }) {
+  const open = useConsole((s) => s.ui.leftOpen) && !collapsed;
   const setUi = useConsole((s) => s.setUi);
 
   if (!open) {
     return (
       <button
         type="button"
-        onClick={() => setUi({ leftOpen: true })}
-        className="glass absolute top-3 left-3 z-20 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold tracking-wider uppercase hover:text-accent-400"
+        onClick={() => (collapsed ? useConsole.getState().select(null) : setUi({ leftOpen: true }))}
+        className={`glass absolute z-20 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold tracking-wider uppercase hover:text-accent-400 ${collapsed ? "top-3 left-[21.5rem] max-lg:left-3" : "top-3 left-3"}`}
         aria-label="Show layers ([)"
       >
         <Layers size={13} /> Layers

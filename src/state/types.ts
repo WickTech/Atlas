@@ -34,6 +34,7 @@ export interface Viewport {
 export type Selection =
   | { kind: "country"; name: string }
   | { kind: "entity"; layer: LayerId; id: string; coord: [number, number] }
+  | { kind: "coord"; coord: [number, number] } // coordinate picker (G)
   | null;
 
 export interface TelemetryFrame {
@@ -45,7 +46,7 @@ export interface TelemetryFrame {
 }
 
 export type RightTab = "intel" | "markets" | "news" | "brief";
-export type Modal = "palette" | "help" | null;
+export type Modal = "palette" | "help" | "ai" | null;
 
 /** Media viewer over the map: live broadcast player or CCTV still. */
 export interface MediaView {
@@ -63,6 +64,8 @@ export interface UiState {
   rightTab: RightTab;
   modal: Modal;
   media: MediaView | null;
+  /** Coordinate-picker mode: next map click selects a point. */
+  picking: boolean;
   ticker: string | null; // asset drawer
 }
 

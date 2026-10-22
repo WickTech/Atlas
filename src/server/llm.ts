@@ -1,7 +1,8 @@
 // Free-tier LLM provider chain for briefs: Groq → OpenRouter (`openrouter/free`
 // auto-routes to whichever free model is up) → caller's deterministic fallback.
-// Server-side only: keys come from env, or from a per-request BYOK key that is
-// used once and never logged or stored.
+// Server-side only, server env keys only. Bring-your-own-key requests never
+// come here: the browser calls the provider directly (src/lib/llmClient.ts),
+// so a user's key never touches this server.
 import { fetchWithTimeout } from "./fetchWithTimeout";
 
 export type LlmProvider = "groq" | "openrouter";
@@ -26,8 +27,6 @@ export interface LlmRequest {
   system: string;
   prompt: string;
   maxTokens?: number;
-  /** BYOK override — tried first against its provider, never persisted. */
-  byok?: { provider: LlmProvider; key: string } | null;
 }
 
 const providers = (): ProviderConfig[] => [
@@ -74,17 +73,11 @@ const callProvider = async (p: ProviderConfig, key: string, req: LlmRequest): Pr
   return { provider: p.id, model: data.model || p.model, text };
 };
 
-/** Tries BYOK (if any), then each configured provider in order. Null when all fail. */
+/** Tries each configured provider in order. Null when none is configured or all fail. */
 export const complete = async (req: LlmRequest): Promise<LlmResult | null> => {
-  const chain = providers();
-  const attempts: [ProviderConfig, string][] = [];
-  if (req.byok?.key) {
-    const p = chain.find((c) => c.id === req.byok?.provider);
-    if (p) attempts.push([p, req.byok.key]);
-  }
-  for (const p of chain) if (p.key) attempts.push([p, p.key]);
-
-  for (const [p, key] of attempts) {
+  for (const p of providers()) {
+    const key = p.key;
+    if (!key) continue;
     try {
       return await callProvider(p, key, req);
     } catch {

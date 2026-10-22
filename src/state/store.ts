@@ -26,7 +26,7 @@ export const initialState = (): ConsoleState => ({
   viewport: { center: [80, 22], zoom: 2.4 },
   selection: null,
   telemetry: {},
-  ui: { leftOpen: true, rightOpen: true, rightTab: "intel", modal: null, media: null, ticker: null }
+  ui: { leftOpen: true, rightOpen: true, rightTab: "intel", modal: null, media: null, picking: false, ticker: null }
 });
 
 export const useConsole = create<ConsoleStore>()((set) => ({
