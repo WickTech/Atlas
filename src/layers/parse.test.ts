@@ -55,12 +55,14 @@ describe("parseGdacsRss", () => {
 <gdacs:severity>Magnitude 7M, Depth:18km</gdacs:severity><gdacs:iscurrent>true</gdacs:iscurrent><gdacs:todate>Thu, 22 Oct 2026 14:33:40 GMT</gdacs:todate>
 <geo:Point><geo:lat>32.3805</geo:lat><geo:long>93.7797</geo:long></geo:Point></item>
 <item><title>dup</title><gdacs:alertlevel>Red</gdacs:alertlevel><gdacs:eventtype>EQ</gdacs:eventtype><gdacs:eventid>1573141</gdacs:eventid><gdacs:iscurrent>true</gdacs:iscurrent><geo:Point><geo:lat>1</geo:lat><geo:long>1</geo:long></geo:Point></item>
+<item><title>Flood X</title><gdacs:alertlevel>Green</gdacs:alertlevel><gdacs:eventtype>FL</gdacs:eventtype><gdacs:eventid>77</gdacs:eventid><gdacs:severity>Magnitude 0 </gdacs:severity><gdacs:country>France</gdacs:country><gdacs:iscurrent>true</gdacs:iscurrent><geo:Point><geo:lat>46</geo:lat><geo:long>2</geo:long></geo:Point></item>
 <item><title>Small fire</title><gdacs:alertlevel>Green</gdacs:alertlevel><gdacs:eventtype>WF</gdacs:eventtype><gdacs:eventid>5</gdacs:eventid><gdacs:iscurrent>true</gdacs:iscurrent><geo:Point><geo:lat>1</geo:lat><geo:long>1</geo:long></geo:Point></item>
 <item><title>Old flood</title><gdacs:alertlevel>Orange</gdacs:alertlevel><gdacs:eventtype>FL</gdacs:eventtype><gdacs:eventid>9</gdacs:eventid><gdacs:iscurrent>false</gdacs:iscurrent><geo:Point><geo:lat>1</geo:lat><geo:long>1</geo:long></geo:Point></item>
 </channel></rss>`;
   it("keeps current events once, maps level/type, upgrades links to https", () => {
     const out = parseGdacsRss(xml);
-    expect(out).toHaveLength(1);
+    expect(out).toHaveLength(2);
+    expect(out[1]?.facts).toEqual(["GDACS Green alert", "France"]); // placeholder severity dropped
     expect(out[0]).toMatchObject({
       id: "gdacs:EQ:1573141",
       coord: [93.7797, 32.3805],

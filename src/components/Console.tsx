@@ -7,10 +7,12 @@ import { useHotkeys } from "@/hooks/useHotkeys";
 import { useMetrics } from "@/hooks/useMetrics";
 import { useTheme } from "@/hooks/useTheme";
 import { LAYERS } from "@/layers/registry";
+import { useLiveLayers } from "@/layers/useLiveLayers";
 import { LENSES } from "@/lib/constants";
 import { threatLevel } from "@/lib/threat";
 import { selectedCountryOf, useConsole } from "@/state/store";
 import { useUrlSync } from "@/state/urlSync";
+import { useCountries } from "@/map/useCountries";
 
 import { SignalBanner } from "./hud/SignalBanner";
 import { CommandPalette, type Command } from "./hud/CommandPalette";
@@ -29,6 +31,10 @@ import { MarketsPanel } from "./modules/MarketsPanel";
 import { NewsFeed } from "./modules/NewsFeed";
 import { SentimentGauge } from "./modules/SentimentGauge";
 import { SignalsPanel } from "./modules/SignalsPanel";
+
+// Code that only renders on interaction stays out of the initial chunk.
+const Inspector = dynamic(() => import("./inspector/Inspector").then((m) => m.Inspector), { ssr: false });
+const AiSettings = dynamic(() => import("./hud/AiSettings").then((m) => m.AiSettings), { ssr: false });
 
 // MapLibre + deck.gl are the heaviest dependencies; keep them out of the
 // initial chunk and off the server entirely.
@@ -52,6 +58,17 @@ export function Console() {
   const ui = useConsole((s) => s.ui);
   const setUi = useConsole((s) => s.setUi);
   const toggleLayer = useConsole((s) => s.toggleLayer);
+  const selection = useConsole((s) => s.selection);
+
+  // Live layers + geometry are owned here and shared by the map and inspector.
+  const countries = useCountries();
+  const live = useLiveLayers(countries?.anchors ?? null);
+
+  // On narrow screens the inspector and intel panel are both bottom sheets; the
+  // inspector wins while something is selected.
+  useEffect(() => {
+    if (selection && window.matchMedia("(max-width: 1023px)").matches) setUi({ rightOpen: false });
+  }, [selection, setUi]);
 
   // Narrow screens start map-first: both panels collapsed (still one key/tap away).
   useEffect(() => {
@@ -71,7 +88,9 @@ export function Console() {
       { id: "scope-india", group: "Scope", label: "Show India news", run: () => setFilters({ scope: "india" }) },
       { id: "scope-world", group: "Scope", label: "Show World news", run: () => setFilters({ scope: "world" }) },
       { id: "theme", group: "View", label: "Toggle light/dark theme", run: toggleTheme },
-      { id: "help", group: "View", label: "Keyboard shortcuts", hint: "?", run: () => setUi({ modal: "help" }) }
+      { id: "help", group: "View", label: "Keyboard shortcuts", hint: "?", run: () => setUi({ modal: "help" }) },
+      { id: "ai", group: "View", label: "AI brief settings (use your own key)", run: () => setUi({ modal: "ai" }) },
+      { id: "pick", group: "View", label: "Pick a location on the map", hint: "G", run: () => setUi({ picking: true }) }
     ];
     for (const l of LAYERS) cmds.push({ id: `layer-${l.id}`, group: "Layer", label: `Toggle ${l.label.toLowerCase()}`, hint: l.hotkey.toUpperCase(), run: () => toggleLayer(l.id) });
     for (const l of LENSES) cmds.push({ id: `lens-${l}`, group: "Lens", label: `Switch to ${l} lens`, run: () => setFilters({ lens: l }) });
@@ -96,17 +115,14 @@ export function Console() {
         <main className="relative min-w-0 flex-1" aria-label="Map">
           {metrics ? (
             <>
-              <MapCanvas metrics={metrics} theme={theme} />
-              <LayerDock />
-              {selected && (
-                <button
-                  type="button"
-                  onClick={() => select(null)}
-                  className="glass telemetry absolute bottom-3 left-3 z-20 inline-flex items-center gap-2 px-2.5 py-1.5 hover:text-accent-400"
-                  title="Clear selection (Esc)"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent" /> FOCUS {selected.toUpperCase()} ✕
-                </button>
+              <MapCanvas metrics={metrics} theme={theme} live={live} countries={countries} />
+              {/* The inspector takes the left edge while something is selected; the dock collapses to its button. */}
+              <LayerDock collapsed={!!selection} />
+              {selection && <Inspector metrics={metrics} live={live} countries={countries} />}
+              {ui.picking && (
+                <div className="glass telemetry pointer-events-none absolute top-3 left-1/2 z-30 -translate-x-1/2 px-3 py-1.5" role="status">
+                  CLICK THE MAP TO INSPECT A LOCATION · ESC TO CANCEL
+                </div>
               )}
             </>
           ) : (
@@ -164,6 +180,7 @@ export function Console() {
       {metrics && <AssetDetailDrawer ticker={ui.ticker} metrics={metrics} onClose={() => setUi({ ticker: null })} />}
       {ui.modal === "palette" && <CommandPalette onClose={() => setUi({ modal: null })} commands={commands} />}
       {ui.modal === "help" && <HelpOverlay onClose={() => setUi({ modal: null })} />}
+      {ui.modal === "ai" && <AiSettings onClose={() => setUi({ modal: null })} />}
       <MediaViewer />
     </div>
   );

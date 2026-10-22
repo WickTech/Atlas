@@ -37,6 +37,7 @@ Real-time global situational-awareness console — country risk, cross-stream si
 app/
   page.tsx               static shell → <Console/> (client)
   api/metrics/route.ts   aggregated payload; CDN cached (s-maxage=60, swr=300)
+  api/brief/route.ts     AI brief on shared free-tier keys: validated input, 15 min LRU, 8 req/min/IP
   api/{hazards,cyber,cctv,flights}/route.ts
                          live-layer proxies: per-source timeouts, in-instance coalescing,
                          CDN s-maxage tuned per feed (10 s flights … 1 h cameras)
@@ -60,11 +61,12 @@ Resilience: every upstream self-falls-back; the route coalesces concurrent cold 
 - Full-bleed globe with a floating **layer dock** (live entity counts, status, opacity), a docked **intel panel** (Intel · Markets · News · Brief), and a **status rail** showing which sources contributed to the current refresh, API latency and a headline tape.
 - **Nine layers** in five groups: regional risk, live news, earthquakes, disasters, aircraft, internet outages, chokepoints & ports, traffic cameras, live TV. Each fetches only while it's on, polls at a cadence matched to its source, pauses in background tabs, and reports status/count/errors to the dock. Small slow-moving layers persist to localStorage and repaint instantly on reload.
 - Aircraft are fetched for the visible box only (zoom ≥ 4, 2°-quantized so pans share cache keys) and drawn radar-style: a dot at barometric altitude plus a heading tail scaled to ground speed.
-- Click a camera or TV marker for a floating viewer (map stays interactive); click anything else for a pinned summary card with its source link.
+- Click a camera or TV marker for a floating viewer (map stays interactive). Click anything else, pick a country, or press `G` and click any point to open the **inspector**. It shows facts and the source link, the country found by point-in-polygon on the loaded geometry, events within 500 km by great-circle distance, a coverage/event timeline, and the latest matching headlines.
+- **AI situational brief** on demand. It's generated only from the facts and headlines the inspector shows: the prompt forbids outside knowledge and treats headline text as data. It uses Atlas's shared free-tier keys through `/api/brief` (input validation, LRU cache, per-IP rate limit, rule-based fallback). With **bring your own key**, the browser calls Groq or OpenRouter directly (both allow CORS), so the key stays in localStorage and never reaches Atlas's server.
 - Radar pings on the busiest news hotspots are MapLibre DOM markers animated purely in CSS (compositor thread, zero per-frame JS, off under `prefers-reduced-motion`).
 - Rendering notes: deck.gl primitives are lifted 3 km off the globe so they don't z-fight with MapLibre's sphere, and aircraft tails use `PathLayer` because `LineLayer` doesn't draw under the globe projection.
 - Every view is a URL: `?l=risk,news&v=20,25,1.6&s=world&c=France` restores layers, camera, scope and selection.
-- Keyboard: `⌘K` palette · `/` search · `[` `]` panels · `1–4` tabs · layers `R` `N` `E` `H` `F` `C` `P` `V` `B` · `Esc` · `?` help.
+- Keyboard: `⌘K` palette · `/` search · `[` `]` panels · `1–4` tabs · `G` pick a location · layers `R` `N` `E` `H` `F` `C` `P` `V` `B` · `Esc` · `?` help.
 
 ## Develop
 

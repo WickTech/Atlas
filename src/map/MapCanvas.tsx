@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Theme } from "@/hooks/useTheme";
 import { LAYER_OF_KIND, type GeoItem } from "@/layers/types";
-import { useLiveLayers } from "@/layers/useLiveLayers";
+import type { LiveData } from "@/layers/useLiveLayers";
 import { clusterByCountry, filterNews, type CountryCluster } from "@/lib/news";
 import { relativeTime } from "@/lib/format";
 import { selectedCountryOf, useConsole } from "@/state/store";
@@ -15,8 +15,7 @@ import type { Metrics } from "@/types/metrics";
 
 import { BASEMAPS } from "./basemaps";
 import { loadCountries, type CountryData } from "./countries";
-import { flightItem, hotspots, liveLayers, newsLayers, radiusPx } from "./deckLayers";
-import { SelectionCard } from "./SelectionCard";
+import { hotspots, liveLayers, newsLayers, radiusPx } from "./deckLayers";
 
 
 const SOURCE = "countries";
@@ -38,12 +37,18 @@ interface Hover {
 // Hybrid renderer: the risk choropleth is native MapLibre fill (feature-state
 // scores, no geometry re-upload); point layers are deck.gl, interleaved into
 // the same WebGL context so they depth-sort with the globe and share one canvas.
-export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme: Theme }) {
+interface Props {
+  metrics: Metrics;
+  theme: Theme;
+  live: LiveData;
+  countries: CountryData | null;
+}
+
+export default function MapCanvas({ metrics, theme, live, countries }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibre | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const [styleGen, setStyleGen] = useState(0); // bumped per style load -> re-apply state
-  const [countries, setCountries] = useState<CountryData | null>(null);
   const [hover, setHover] = useState<Hover | null>(null);
 
   const layers = useConsole((s) => s.layers);
@@ -56,23 +61,9 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
   const select = useConsole((s) => s.select);
   const setUi = useConsole((s) => s.setUi);
 
-  const live = useLiveLayers(countries?.anchors ?? null);
   const viewportZoom = useConsole((s) => s.viewport.zoom);
   const selectedEntityId = selection?.kind === "entity" ? selection.id : null;
 
-  // Resolve the selected entity from current data (flights are compact tuples).
-  const selectedItem = useMemo<GeoItem | null>(() => {
-    if (!selectedEntityId) return null;
-    if (selectedEntityId.startsWith("ac:")) {
-      const f = live.flights.find((t) => `ac:${t[0]}` === selectedEntityId);
-      return f ? flightItem(f) : null;
-    }
-    for (const list of [live.quakes, live.hazards, live.cyber, live.strategic, live.cctv, live.broadcasts]) {
-      const hit = list.find((i) => i.id === selectedEntityId);
-      if (hit) return hit;
-    }
-    return null;
-  }, [selectedEntityId, live]);
 
   const scores = useMemo(() => new Map(metrics.countryIndex.countries.map((c) => [c.name, c])), [metrics.countryIndex]);
   const clusters = useMemo<CountryCluster[]>(
@@ -126,8 +117,7 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
     // (Re)install native layers whenever a style finishes loading (initial + theme swaps).
     map.on("style.load", async () => {
       map.setProjection({ type: "globe" });
-      const data = await loadCountries();
-      setCountries(data);
+      const data = await loadCountries(); // shared promise with useCountries()
       if (!map.getSource(SOURCE)) map.addSource(SOURCE, { type: "geojson", data: data.geojson, promoteId: "name" });
       const before = firstSymbolLayer(map);
       if (!map.getLayer(FILL)) {
@@ -180,8 +170,17 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
       setHover(null);
     });
     map.on("click", FILL, (e: MapLayerMouseEvent) => {
+      if (useConsole.getState().ui.picking) return; // coordinate picker owns this click
       const name = e.features?.[0]?.properties?.name as string | undefined;
       if (name) latest.current.selectCountry(name);
+    });
+
+    // Coordinate picker (G): the next click anywhere selects that point.
+    map.on("click", (e) => {
+      const s = useConsole.getState();
+      if (!s.ui.picking) return;
+      s.select({ kind: "coord", coord: [Number(e.lngLat.lng.toFixed(4)), Number(e.lngLat.lat.toFixed(4))] });
+      s.setUi({ picking: false });
     });
 
     // Persist camera (+ visible bounds for viewport-scoped feeds) once movement settles.
@@ -261,6 +260,8 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
     const onItemHover = (item: GeoItem | null, x: number, y: number) =>
       setHover(item ? { x, y, title: item.title, lines: [...item.facts.slice(0, 3), `${item.source}${item.ts ? ` · ${relativeTime(item.ts)}` : ""}`] } : null);
     const onItemClick = (item: GeoItem) => {
+      if (useConsole.getState().ui.picking) return;
+      setHover(null); // don't leave a stale tooltip under the viewer/inspector
       if ((item.kind === "broadcast" || item.kind === "cctv") && item.media) {
         setUi({ media: { kind: item.kind, itemId: item.id, title: item.title, media: item.media, url: item.url, facts: item.facts } });
         return;
@@ -295,6 +296,13 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
     return () => markers.forEach((m) => m.remove());
   }, [clusters, layers.news.enabled, styleGen]);
 
+  // Crosshair while the coordinate picker is armed.
+  const picking = useConsole((s) => s.ui.picking);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map) map.getCanvas().style.cursor = picking ? "crosshair" : "";
+  }, [picking]);
+
   // Fly to a country picked from a list/palette (map clicks are already in view).
   useEffect(() => {
     const map = mapRef.current;
@@ -309,7 +317,6 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
       {/* Inline positioning on purpose: maplibre-gl.css sets `.maplibregl-map { position: relative }`
           unlayered, which outranks Tailwind's layered `absolute` utility and collapses the map to 0px. */}
       <div ref={containerRef} style={{ position: "absolute", inset: 0 }} aria-label="World map" role="region" />
-      {selectedItem && <SelectionCard item={selectedItem} onClose={() => select(null)} />}
       {hover && (
         <div className="glass pointer-events-none absolute z-10 max-w-xs px-2.5 py-1.5 text-xs" style={{ left: hover.x + 14, top: hover.y + 14 }} role="tooltip">
           <div className="font-bold">{hover.title}</div>

@@ -6,6 +6,7 @@ import type { PickingInfo } from "@deck.gl/core";
 import type { GeoItem } from "@/layers/types";
 import type { LiveData } from "@/layers/useLiveLayers";
 import type { CountryCluster } from "@/lib/news";
+import { flightItem } from "@/layers/flights";
 import type { FlightTuple } from "@/server/live";
 import type { LayerId, LayerState } from "@/state/types";
 
@@ -95,23 +96,6 @@ export interface LiveLayerOpts {
   onHover: (item: GeoItem | null, x: number, y: number) => void;
   onClick: (item: GeoItem) => void;
 }
-
-/** Flight tuple -> GeoItem, built lazily (hover/click only) so thousands of planes stay as compact arrays. */
-export const flightItem = (f: FlightTuple): GeoItem => {
-  const [hex, call, lng, lat, alt, gs, track, type, mil] = f;
-  return {
-    id: `ac:${hex}`,
-    kind: "flight",
-    coord: [lng, lat],
-    title: call || hex.toUpperCase(),
-    ts: null,
-    severity: mil ? "medium" : "low",
-    source: "adsb.lol",
-    url: `https://globe.adsb.lol/?icao=${hex}`,
-    facts: [type || "unknown type", alt < 0 ? "on ground" : `${alt.toLocaleString("en-US")} ft`, `${gs} kt · ${track}°`, ...(mil ? ["military-flagged"] : [])],
-    heading: track
-  };
-};
 
 export const liveLayers = ({ data, zoom, layers, selectedId, onHover, onClick }: LiveLayerOpts) => {
   const common = {

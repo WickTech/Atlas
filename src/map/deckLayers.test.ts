@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { FlightTuple } from "@/server/live";
 
-import { flightItem, flightTail } from "./deckLayers";
+import { flightItem } from "@/layers/flights";
+
+import { flightTail } from "./deckLayers";
 
 const ac = (track: number, gs = 450, lat = 0): FlightTuple => ["abc", "TEST1", 10, lat, 30000, gs, track, "A320", 0];
 

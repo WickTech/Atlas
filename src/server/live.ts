@@ -78,7 +78,9 @@ export const parseGdacsRss = (xml: string): GeoItem[] => {
     seen.add(key);
     const t = Date.parse(it["gdacs:todate"] ?? "");
     const facts = [`GDACS ${level} alert`];
-    if (it["gdacs:severity"]) facts.push(String(it["gdacs:severity"]).trim());
+    const sev = String(it["gdacs:severity"] ?? "").trim();
+    // GDACS fills severity with a "Magnitude 0" placeholder for some event types.
+    if (sev && !/^magnitude 0(\.0+)?\b/i.test(sev)) facts.push(sev);
     if (it["gdacs:country"]) facts.push(String(it["gdacs:country"]));
     return [
       {
