@@ -16,6 +16,7 @@ import { SignalBanner } from "./hud/SignalBanner";
 import { CommandPalette, type Command } from "./hud/CommandPalette";
 import { HelpOverlay } from "./hud/HelpOverlay";
 import { LayerDock } from "./hud/LayerDock";
+import { MediaViewer } from "./hud/MediaViewer";
 import { Sidebar } from "./hud/Sidebar";
 import { StatusBar } from "./hud/StatusBar";
 import { TopBar } from "./hud/TopBar";
@@ -163,6 +164,7 @@ export function Console() {
       {metrics && <AssetDetailDrawer ticker={ui.ticker} metrics={metrics} onClose={() => setUi({ ticker: null })} />}
       {ui.modal === "palette" && <CommandPalette onClose={() => setUi({ modal: null })} commands={commands} />}
       {ui.modal === "help" && <HelpOverlay onClose={() => setUi({ modal: null })} />}
+      <MediaViewer />
     </div>
   );
 }

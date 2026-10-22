@@ -2,10 +2,12 @@
 
 import type { PickingInfo } from "@deck.gl/core";
 import { MapboxOverlay } from "@deck.gl/mapbox";
-import { AJAXError, GlobeControl, Map as MapLibre, NavigationControl, type MapLayerMouseEvent } from "maplibre-gl";
+import { AJAXError, GlobeControl, Map as MapLibre, Marker, NavigationControl, type MapLayerMouseEvent } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Theme } from "@/hooks/useTheme";
+import { LAYER_OF_KIND, type GeoItem } from "@/layers/types";
+import { useLiveLayers } from "@/layers/useLiveLayers";
 import { clusterByCountry, filterNews, type CountryCluster } from "@/lib/news";
 import { relativeTime } from "@/lib/format";
 import { selectedCountryOf, useConsole } from "@/state/store";
@@ -13,13 +15,13 @@ import type { Metrics } from "@/types/metrics";
 
 import { BASEMAPS } from "./basemaps";
 import { loadCountries, type CountryData } from "./countries";
-import { newsLayers } from "./deckLayers";
+import { flightItem, hotspots, liveLayers, newsLayers, radiusPx } from "./deckLayers";
+import { SelectionCard } from "./SelectionCard";
 
 
 const SOURCE = "countries";
 const FILL = "country-risk-fill";
 const LINE = "country-risk-line";
-const PULSE_MS = 2200;
 
 /** First symbol layer: risk fills go beneath basemap labels so names stay legible. */
 const firstSymbolLayer = (map: MapLibre) => map.getStyle().layers?.find((l) => l.type === "symbol")?.id;
@@ -50,6 +52,27 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
   const setLayer = useConsole((s) => s.setLayer);
   const selectCountry = useConsole((s) => s.selectCountry);
   const setViewport = useConsole((s) => s.setViewport);
+  const selection = useConsole((s) => s.selection);
+  const select = useConsole((s) => s.select);
+  const setUi = useConsole((s) => s.setUi);
+
+  const live = useLiveLayers(countries?.anchors ?? null);
+  const viewportZoom = useConsole((s) => s.viewport.zoom);
+  const selectedEntityId = selection?.kind === "entity" ? selection.id : null;
+
+  // Resolve the selected entity from current data (flights are compact tuples).
+  const selectedItem = useMemo<GeoItem | null>(() => {
+    if (!selectedEntityId) return null;
+    if (selectedEntityId.startsWith("ac:")) {
+      const f = live.flights.find((t) => `ac:${t[0]}` === selectedEntityId);
+      return f ? flightItem(f) : null;
+    }
+    for (const list of [live.quakes, live.hazards, live.cyber, live.strategic, live.cctv, live.broadcasts]) {
+      const hit = list.find((i) => i.id === selectedEntityId);
+      if (hit) return hit;
+    }
+    return null;
+  }, [selectedEntityId, live]);
 
   const scores = useMemo(() => new Map(metrics.countryIndex.countries.map((c) => [c.name, c])), [metrics.countryIndex]);
   const clusters = useMemo<CountryCluster[]>(
@@ -161,11 +184,15 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
       if (name) latest.current.selectCountry(name);
     });
 
-    // Persist camera to the store (and from there the URL) once movement settles.
-    map.on("moveend", () => {
+    // Persist camera (+ visible bounds for viewport-scoped feeds) once movement settles.
+    const syncViewport = () => {
       const c = map.getCenter();
-      setViewport({ center: [c.lng, c.lat], zoom: map.getZoom() });
-    });
+      const b = map.getBounds();
+      setViewport({ center: [c.lng, c.lat], zoom: map.getZoom(), bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] });
+    };
+    map.on("moveend", syncViewport);
+    // Bounds are known once the style is ready — don't wait for "load" (all tiles).
+    map.once("style.load", syncViewport);
 
     return () => {
       overlayRef.current = null;
@@ -205,16 +232,16 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
     setLayer("news", { count: clusters.reduce((n, c) => n + c.count, 0), status: "ready", updatedAt: metrics.updatedAt });
   }, [clusters, countries, metrics.updatedAt, setLayer]);
 
-  // deck.gl layers. Inputs live in a ref so the radar-ping animation can call
-  // overlay.setProps from requestAnimationFrame without re-rendering React;
-  // deck diffs by layer id + updateTriggers, so per-frame rebuilds are cheap.
-  const deckInput = useRef<Omit<Parameters<typeof newsLayers>[0], "pulse"> & { enabled: boolean }>(null);
-  const pulseRef = useRef<number | null>(null);
+  // deck.gl layers. setProps only runs when inputs change — never per frame:
+  // each setProps resets deck's pointer-down pick, which silently swallowed
+  // clicks back when the radar pings were animated here at 30 fps.
+  const deckInput = useRef<(Parameters<typeof newsLayers>[0] & { enabled: boolean; extra: ReturnType<typeof liveLayers> }) | null>(null);
   const renderDeck = useCallback(() => {
     const input = deckInput.current;
     const overlay = overlayRef.current;
     if (!overlay || !input) return;
-    overlay.setProps({ layers: input.enabled ? newsLayers({ ...input, pulse: pulseRef.current }) : [] });
+    // Live layers underneath; news markers + pings drawn last (on top).
+    overlay.setProps({ layers: [...input.extra, ...(input.enabled ? newsLayers(input) : [])] });
   }, []);
 
   useEffect(() => {
@@ -231,7 +258,17 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
           : null
       );
     };
+    const onItemHover = (item: GeoItem | null, x: number, y: number) =>
+      setHover(item ? { x, y, title: item.title, lines: [...item.facts.slice(0, 3), `${item.source}${item.ts ? ` · ${relativeTime(item.ts)}` : ""}`] } : null);
+    const onItemClick = (item: GeoItem) => {
+      if ((item.kind === "broadcast" || item.kind === "cctv") && item.media) {
+        setUi({ media: { kind: item.kind, itemId: item.id, title: item.title, media: item.media, url: item.url, facts: item.facts } });
+        return;
+      }
+      select({ kind: "entity", layer: LAYER_OF_KIND[item.kind], id: item.id, coord: item.coord });
+    };
     deckInput.current = {
+      extra: liveLayers({ data: live, zoom: viewportZoom, layers, selectedId: selectedEntityId, onHover: onItemHover, onClick: onItemClick }),
       enabled: layers.news.enabled,
       clusters,
       selected,
@@ -241,28 +278,22 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
       onHover
     };
     renderDeck();
-  }, [clusters, selected, layers.news.enabled, layers.news.opacity, theme, selectCountry, renderDeck, styleGen]);
+  }, [clusters, selected, layers, theme, selectCountry, renderDeck, styleGen, live, selectedEntityId, select, setUi, viewportZoom]);
 
-  // Radar ping phase ticker (~30 fps) — only while news is on and motion is allowed.
+  // Radar pings on the busiest hotspots: DOM markers animated by CSS (compositor
+  // thread, zero per-frame JS, off under prefers-reduced-motion via globals.css).
   useEffect(() => {
-    if (!layers.news.enabled || prefersReducedMotion()) {
-      pulseRef.current = null;
-      renderDeck();
-      return;
-    }
-    let raf = 0;
-    let last = 0;
-    const tick = (t: number) => {
-      if (t - last > 33) {
-        last = t;
-        pulseRef.current = (t % PULSE_MS) / PULSE_MS;
-        renderDeck();
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [layers.news.enabled, renderDeck]);
+    const map = mapRef.current;
+    if (!map || !layers.news.enabled) return;
+    const markers = hotspots(clusters).map((c) => {
+      const el = document.createElement("div");
+      el.className = "radar-ping";
+      el.style.setProperty("--ping-size", `${Math.round(radiusPx(c.count) * 2)}px`);
+      el.setAttribute("aria-hidden", "true");
+      return new Marker({ element: el }).setLngLat(c.coord).addTo(map);
+    });
+    return () => markers.forEach((m) => m.remove());
+  }, [clusters, layers.news.enabled, styleGen]);
 
   // Fly to a country picked from a list/palette (map clicks are already in view).
   useEffect(() => {
@@ -278,6 +309,7 @@ export default function MapCanvas({ metrics, theme }: { metrics: Metrics; theme:
       {/* Inline positioning on purpose: maplibre-gl.css sets `.maplibregl-map { position: relative }`
           unlayered, which outranks Tailwind's layered `absolute` utility and collapses the map to 0px. */}
       <div ref={containerRef} style={{ position: "absolute", inset: 0 }} aria-label="World map" role="region" />
+      {selectedItem && <SelectionCard item={selectedItem} onClose={() => select(null)} />}
       {hover && (
         <div className="glass pointer-events-none absolute z-10 max-w-xs px-2.5 py-1.5 text-xs" style={{ left: hover.x + 14, top: hover.y + 14 }} role="tooltip">
           <div className="font-bold">{hover.title}</div>

@@ -35,8 +35,13 @@ export const sourceHealth = (m: Metrics): Health[] => {
 
 /** Bottom telemetry rail: source health, API latency, last refresh, scrolling headline tape. */
 export function StatusBar({ metrics }: { metrics: Metrics }) {
-  const frames = useConsole((s) => s.telemetry.metrics);
-  const last = frames?.at(-1);
+  const telemetry = useConsole((s) => s.telemetry);
+  const last = telemetry.metrics?.at(-1);
+  // Live-layer feeds report into the same ring buffer (src/lib/fetchJson.ts).
+  const liveSources = Object.entries(telemetry)
+    .filter(([source]) => source !== "metrics")
+    .map(([source, frames]) => ({ source, f: frames.at(-1) }))
+    .filter((x): x is { source: string; f: NonNullable<typeof x.f> } => !!x.f);
   const health = useMemo(() => sourceHealth(metrics), [metrics]);
   const tape = useMemo(() => metrics.news.slice(0, 12), [metrics.news]);
 
@@ -48,6 +53,13 @@ export function StatusBar({ metrics }: { metrics: Metrics }) {
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: TONE[h.tone] }} />
             <span className="text-fg">{h.label}</span>
             {h.value}
+          </span>
+        ))}
+        {liveSources.map(({ source, f }) => (
+          <span key={source} title={`${source}: last fetch ${f.ok ? "ok" : "failed"} in ${f.latencyMs} ms`} className="hidden items-center gap-1 xl:inline-flex">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: f.ok ? TONE.ok : TONE.warn }} />
+            <span className="text-fg">{source.toUpperCase()}</span>
+            {f.ok ? f.count : "err"}
           </span>
         ))}
         {last && (

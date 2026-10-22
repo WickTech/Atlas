@@ -20,7 +20,7 @@ export const SHORTCUTS: Shortcut[] = [
   { keys: "[", label: "Toggle layer dock" },
   { keys: "]", label: "Toggle intel panel" },
   { keys: "1–4", label: "Intel · Markets · News · Brief tabs" },
-  { keys: "Esc", label: "Close overlay / clear selection" },
+  { keys: "Esc", label: "Close overlay / viewer / clear selection" },
   { keys: "?", label: "This help" }
 ];
 
@@ -43,6 +43,7 @@ export function useHotkeys(searchRef: React.RefObject<HTMLInputElement | null>) 
       if (e.key === "Escape") {
         if (s.ui.modal) s.setUi({ modal: null });
         else if (s.ui.ticker) s.setUi({ ticker: null });
+        else if (s.ui.media) s.setUi({ media: null });
         else if (isTyping(e.target)) (e.target as HTMLElement).blur();
         else s.select(null);
         return;

@@ -33,3 +33,24 @@ export const createCache = <T>(load: () => Promise<T>, ttlMs: number, merge?: (f
 
   return { get };
 };
+
+/**
+ * Per-key variant (e.g. one entry per quantized flight bbox). Bounded: the
+ * oldest key is evicted past `maxKeys`, so arbitrary query strings can't grow
+ * instance memory without limit.
+ */
+export const createKeyedCache = <K extends string, T>(load: (key: K) => Promise<T>, ttlMs: number, maxKeys = 64) => {
+  const caches = new Map<K, ReturnType<typeof createCache<T>>>();
+  return {
+    get: (key: K) => {
+      let c = caches.get(key);
+      if (!c) {
+        c = createCache(() => load(key), ttlMs);
+        caches.set(key, c);
+        if (caches.size > maxKeys) caches.delete(caches.keys().next().value as K);
+      }
+      return c.get();
+    },
+    size: () => caches.size
+  };
+};

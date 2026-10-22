@@ -4,8 +4,7 @@
 // mirrored into the URL by urlSync.ts.
 import type { Lens, Scope } from "@/lib/constants";
 
-/** Layers that exist today. Stage 3 extends this union with live feeds. */
-export type LayerId = "risk" | "news";
+export type LayerId = "risk" | "news" | "quakes" | "hazards" | "flights" | "cyber" | "cctv" | "broadcasts" | "strategic";
 
 export type LayerStatus = "idle" | "loading" | "ready" | "stale" | "error";
 
@@ -28,6 +27,8 @@ export interface Filters {
 export interface Viewport {
   center: [lng: number, lat: number];
   zoom: number;
+  /** Visible bounds [w, s, e, n]; runtime only (not URL-serialized). */
+  bbox?: [number, number, number, number];
 }
 
 export type Selection =
@@ -46,11 +47,22 @@ export interface TelemetryFrame {
 export type RightTab = "intel" | "markets" | "news" | "brief";
 export type Modal = "palette" | "help" | null;
 
+/** Media viewer over the map: live broadcast player or CCTV still. */
+export interface MediaView {
+  kind: "broadcast" | "cctv";
+  itemId: string;
+  title: string;
+  media: string; // embed or image URL
+  url?: string; // source page
+  facts: string[];
+}
+
 export interface UiState {
   leftOpen: boolean;
   rightOpen: boolean;
   rightTab: RightTab;
   modal: Modal;
+  media: MediaView | null;
   ticker: string | null; // asset drawer
 }
 
