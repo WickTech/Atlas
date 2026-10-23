@@ -1,8 +1,17 @@
 # Atlas 🌍
 
+[![CI](https://github.com/WickTech/Atlas/actions/workflows/ci.yml/badge.svg)](https://github.com/WickTech/Atlas/actions/workflows/ci.yml)
+[![Security](https://github.com/WickTech/Atlas/actions/workflows/security.yml/badge.svg)](https://github.com/WickTech/Atlas/actions/workflows/security.yml)
+[![Live on Vercel](https://img.shields.io/badge/live-atlas--eight--fawn.vercel.app-000?logo=vercel)](https://atlas-eight-fawn.vercel.app)
+![Next.js 16](https://img.shields.io/badge/Next.js-16-000?logo=nextdotjs)
+![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=fff)
+![Initial JS](https://img.shields.io/badge/initial%20JS-165%20kB%20gz-2e7d32)
+
 Real-time global situational-awareness console — country risk, cross-stream signals, markets and world news on a GPU-rendered globe. Built entirely on free, keyless, open data and deployed as a zero-config Next.js app on Vercel.
 
 **Live:** https://atlas-eight-fawn.vercel.app
+
+![Atlas console: layer dock, globe with risk choropleth, quakes, disasters and chokepoints, intel panel with the country instability index](docs/screenshots/console.png)
 
 ## Stack
 
@@ -11,27 +20,56 @@ Real-time global situational-awareness console — country risk, cross-stream si
 - **MapLibre GL v5 + deck.gl 9** — one WebGL context: native feature-state choropleth for risk, deck.gl layers interleaved on the globe (MapLibre v6 drops the `map.transform` API deck.gl's overlay needs, so v5 is pinned until deck.gl supports it)
 - **Zustand** — control state (layers, filters, camera, selection, telemetry) with debounced two-way **URL sync** for shareable deep links
 - **TanStack Query** — polling that pauses in background tabs, exponential backoff, last-good-data retention
-- **Vitest** — unit tests for the whole server data pipeline
+- **Vitest** — unit tests for the whole server data pipeline · **Playwright** — production smoke tests in CI
 
 ## Data sources (all free)
 
-| Source | Used for | Key |
-| --- | --- | --- |
-| Publisher RSS (The Hindu, NDTV, TOI, Mint, ET, BBC, Al Jazeera, DW, France 24, Guardian, NPR, UN News) | News backbone, subject-country tagging | none |
-| GDELT DOC 2.0 | Supplementary world news + tone (throttled to 1 req / 5 s per IP, so best-effort) | none |
-| Yahoo Finance chart API | India + global markets | none |
-| Alpha Vantage | Per-article sentiment, top gainer | optional `ALPHA_VANTAGE_API_KEY` |
-| Groq / OpenRouter (`openrouter/free`) | AI briefs, deterministic fallback otherwise | optional `GROQ_API_KEY` / `OPENROUTER_API_KEY` |
-| OpenFreeMap (OSM) · CARTO fallback | Vector basemaps | none |
-| USGS real-time feed | Earthquakes M2.5+ (browser-direct, CORS-open) | none |
-| NASA EONET · GDACS | Natural events + disaster impact alerts (via `/api/hazards`) | none |
-| adsb.lol (ODbL) | Live aircraft in the visible area (via `/api/flights`) | none |
-| IODA (Georgia Tech) · abuse.ch Feodo Tracker | Internet outages by country, botnet C2 hosting (via `/api/cyber`) | none |
-| TfL JamCams (OGL) | London traffic-camera stills (via `/api/cctv`) | none |
-| YouTube live embeds | 24/7 news channels (privacy-enhanced `youtube-nocookie`) | none |
-| U.S. EIA · Lloyd's List · ICG CrisisWatch | Static reference: chokepoints, major ports, flashpoint areas | none |
+| Source | Used for | Key | Terms |
+| --- | --- | --- | --- |
+| Publisher RSS (The Hindu, NDTV, TOI, Mint, ET, BBC, Al Jazeera, DW, France 24, Guardian, NPR, UN News) | News backbone, subject-country tagging | none | Headlines + links only, per publisher terms |
+| GDELT DOC 2.0 | Supplementary world news + tone (throttled to 1 req / 5 s per IP, so best-effort) | none | Open use with citation |
+| Yahoo Finance chart API | India + global markets | none | Unofficial endpoint, Yahoo terms |
+| Alpha Vantage | Per-article sentiment, top gainer | optional `ALPHA_VANTAGE_API_KEY` | Free tier terms |
+| Groq / OpenRouter (`openrouter/free`) | AI briefs, deterministic fallback otherwise | optional `GROQ_API_KEY` / `OPENROUTER_API_KEY` | Provider terms |
+| OpenFreeMap (OSM) · CARTO fallback | Vector basemaps | none | ODbL (OSM data), attribution shown on map |
+| USGS real-time feed | Earthquakes M2.5+ (browser-direct, CORS-open) | none | U.S. public domain |
+| NASA EONET · GDACS | Natural events + disaster impact alerts (via `/api/hazards`) | none | NASA open data · GDACS free use with attribution |
+| adsb.lol | Live aircraft in the visible area (via `/api/flights`) | none | ODbL |
+| IODA (Georgia Tech) · abuse.ch Feodo Tracker | Internet outages by country, botnet C2 hosting (via `/api/cyber`) | none | IODA terms · CC0 |
+| TfL JamCams | London traffic-camera stills (via `/api/cctv`) | none | Open Government Licence ("Powered by TfL Open Data") |
+| YouTube live embeds | 24/7 news channels (privacy-enhanced `youtube-nocookie`) | none | YouTube terms |
+| U.S. EIA · Lloyd's List · ICG CrisisWatch | Static reference: chokepoints, major ports, flashpoint areas | none | Cited reference figures, labelled static in the UI |
 
 ## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Browser
+    UI["Console (React 19)<br/>HUD · intel panel · inspector"]
+    Store["Zustand store<br/>⇄ URL deep link"]
+    Q["TanStack Query<br/>polling · backoff · persisted cache"]
+    Map["MapLibre globe + deck.gl overlay<br/>(lazy chunk)"]
+    UI <--> Store
+    UI --> Q
+    Store --> Map
+    Q --> Map
+  end
+
+  subgraph Vercel["Vercel (Next.js route handlers, CDN-cached)"]
+    Metrics["/api/metrics<br/>RSS · GDELT · markets → risk, signals"]
+    Live["/api/hazards · cyber · flights · cctv<br/>per-source timeouts, coalescing"]
+    Brief["/api/brief<br/>validated · LRU · rate-limited"]
+  end
+
+  Q -->|"s-maxage + swr"| Metrics
+  Q --> Live
+  UI -->|shared keys| Brief
+  Q -->|CORS-open| USGS[(USGS quakes)]
+  UI -->|BYOK, key stays in browser| LLM[(Groq / OpenRouter)]
+  Brief --> LLM
+  Metrics --> Up[(Publisher RSS · GDELT · Yahoo · Alpha Vantage)]
+  Live --> Up2[(EONET · GDACS · adsb.lol · IODA · Feodo · TfL)]
+```
 
 ```
 app/
@@ -68,6 +106,15 @@ Resilience: every upstream self-falls-back; the route coalesces concurrent cold 
 - Every view is a URL: `?l=risk,news&v=20,25,1.6&s=world&c=France` restores layers, camera, scope and selection.
 - Keyboard: `⌘K` palette · `/` search · `[` `]` panels · `1–4` tabs · `G` pick a location · layers `R` `N` `E` `H` `F` `C` `P` `V` `B` · `Esc` · `?` help.
 
+## Quality gates
+
+Every push and PR runs [`ci.yml`](.github/workflows/ci.yml) (typecheck → lint → Vitest → build → initial-JS budget → Playwright smoke) and [`security.yml`](.github/workflows/security.yml) (gitleaks + Semgrep).
+
+- **Initial JS budget:** `npm run size` sums the gzip size of every script the prerendered page loads (skipping `noModule` polyfills, which modern browsers never fetch) and fails above 180 kB. Currently ~165 kB; MapLibre, deck.gl, the inspector, palette, help, media viewer and asset drawer are all lazy chunks.
+- **Playwright smoke** (`e2e/`): health endpoint, shell renders with no uncaught errors and the WebGL globe mounts (SwiftShader on CI), URL deep link ⇄ layer toggles, and the lazily loaded ⌘K palette.
+- **Lighthouse** (local production build, desktop preset): Accessibility 95 · Best Practices 100 · SEO 100 · CLS 0 (desktop and mobile). The performance score is dominated by the WebGL globe, which headless Lighthouse renders on the CPU (SwiftShader), so it says little about real GPUs.
+- Layout stability: the top-signal row and threat chip reserve their space before data arrives, so the map doesn't jump on load (CLS was 0.32 before).
+
 ## Develop
 
 ```bash
@@ -75,6 +122,9 @@ npm install
 cp .env.example .env.local   # optional keys
 npm run dev                  # http://localhost:3000
 npm run typecheck && npm run lint && npm test && npm run build
+npm run size                 # initial JS budget (after build)
+npx playwright install chromium --only-shell
+npm run test:e2e             # smoke tests against `next start`
 ```
 
 Feature concepts adapted from [koala73/worldmonitor](https://github.com/koala73/worldmonitor) (AGPL-3.0) — ideas only, no code copied.
