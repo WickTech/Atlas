@@ -89,8 +89,10 @@ export const complete = async (req: LlmRequest): Promise<LlmResult | null> => {
     if (remaining < 500) break;
     try {
       return await callProvider(p, key, req, Math.min(PER_CALL_MS, remaining));
-    } catch {
-      // rate limit / outage / bad key / timeout -> next provider
+    } catch (err) {
+      // rate limit / outage / bad key / timeout -> next provider. Log the reason
+      // (never the key) so a silent rule-based fallback is diagnosable in Vercel logs.
+      console.warn(`[llm] ${p.id} failed: ${err instanceof Error ? `${err.name}: ${err.message}` : "unknown"}`);
     }
   }
   return null;

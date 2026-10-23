@@ -108,13 +108,21 @@ Resilience: every upstream self-falls-back; the route coalesces concurrent cold 
 
 ## Quality gates
 
-Every push and PR runs [`ci.yml`](.github/workflows/ci.yml) (typecheck → lint → Vitest → build → initial-JS budget → Playwright smoke) and [`security.yml`](.github/workflows/security.yml) (gitleaks + Semgrep).
+Every push and PR runs [`ci.yml`](.github/workflows/ci.yml) (audit gate → typecheck → lint → Vitest → build → initial-JS budget → Playwright smoke) and [`security.yml`](.github/workflows/security.yml) (gitleaks + Semgrep).
 
 - **Initial JS budget:** `npm run size` sums the gzip size of every script the prerendered page loads (skipping `noModule` polyfills, which modern browsers never fetch) and fails above 180 kB. Currently ~165 kB; MapLibre, deck.gl, the inspector, palette, help, media viewer and asset drawer are all lazy chunks.
 - **Playwright smoke** (`e2e/`): health endpoint, shell renders with no uncaught errors and the WebGL globe mounts (SwiftShader on CI), URL deep link ⇄ layer toggles, and the lazily loaded ⌘K palette.
 - **Contrast guard:** `e2e/a11y.spec.ts` runs axe `color-contrast` (WCAG AA) in light and dark over every intel tab, the layer dock, inspector, ⌘K palette, help overlay and a mobile viewport. Text on the brand red uses `--accent` `#d42a10` (white 5.1:1); red *text* uses `--accent-400`, which is tuned per theme.
 - **Lighthouse** (local production build, desktop preset): Accessibility 95 · Best Practices 100 · SEO 100 · CLS 0 (desktop and mobile). The performance score is dominated by the WebGL globe, which headless Lighthouse renders on the CPU (SwiftShader), so it says little about real GPUs.
 - Layout stability: the top-signal row and threat chip reserve their space before data arrives, so the map doesn't jump on load (CLS was 0.32 before).
+
+## Security
+
+Strict CSP and hardening headers on every response, secret scanning, Semgrep, weekly Dependabot with a one-week cooldown, and a CI `npm audit` gate. One accepted advisory (maplibre-gl, not reachable here) is documented with a review date in [SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Rishabh Verma. Data sources keep their own terms (see the table above).
 
 ## Develop
 
@@ -124,6 +132,7 @@ cp .env.example .env.local   # optional keys
 npm run dev                  # http://localhost:3000
 npm run typecheck && npm run lint && npm test && npm run build
 npm run size                 # initial JS budget (after build)
+npm run audit:gate           # npm audit, minus documented accepted risks
 npx playwright install chromium --only-shell
 npm run test:e2e             # smoke tests against `next start`
 ```

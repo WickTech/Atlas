@@ -45,3 +45,29 @@ test.describe("console smoke", () => {
     await expect(palette).toBeHidden();
   });
 });
+
+test.describe("security headers", () => {
+  test("every response carries the hardening headers and a CSP", async ({ request }) => {
+    for (const path of ["/", "/api/health"]) {
+      const h = (await request.get(path)).headers();
+      expect(h["x-content-type-options"], path).toBe("nosniff");
+      expect(h["x-frame-options"], path).toBe("DENY");
+      expect(h["referrer-policy"], path).toBe("strict-origin-when-cross-origin");
+      expect(h["content-security-policy"], path).toContain("frame-ancestors 'none'");
+    }
+  });
+
+  test("the app runs under the CSP with every layer on and nothing is blocked", async ({ page }) => {
+    const violations: string[] = [];
+    await page.addInitScript(() => {
+      document.addEventListener("securitypolicyviolation", (e) => {
+        (window as unknown as { __csp: string[] }).__csp = [...((window as unknown as { __csp?: string[] }).__csp ?? []), `${e.violatedDirective} ${e.blockedURI}`];
+      });
+    });
+    await page.goto("/?l=risk,news,quakes,hazards,flights,cyber,cctv,broadcasts,strategic&v=0,51,5");
+    await expect(page.locator(".maplibregl-canvas")).toBeVisible({ timeout: 45_000 });
+    await page.waitForTimeout(12_000);
+    violations.push(...(await page.evaluate(() => (window as unknown as { __csp?: string[] }).__csp ?? [])));
+    expect(violations).toEqual([]);
+  });
+});
