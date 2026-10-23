@@ -18,8 +18,8 @@ export function SignalBanner({ signal, onSelectCountry }: { signal: Signal | nul
     >
       <span className="telemetry flex-none border border-white/60 px-1.5 py-px text-[10px] font-semibold tracking-[.1em]">TOP SIGNAL</span>
       <span className="flex-none text-[12.5px] font-extrabold">{signal.label}</span>
-      <span className="hidden flex-none text-[11px] opacity-85 sm:inline">· {signal.detail}</span>
-      {headline && <span className="min-w-0 flex-1 truncate text-[12px] opacity-85">— latest: {headline}</span>}
+      <span className="hidden flex-none text-[11px] sm:inline">· {signal.detail}</span>
+      {headline && <span className="min-w-0 flex-1 truncate text-[12px]">— latest: {headline}</span>}
     </button>
   );
 }

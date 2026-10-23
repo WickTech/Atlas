@@ -70,10 +70,10 @@ export function CommandPalette({ onClose, commands }: { onClose: () => void; com
                   className={`flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm ${i === active ? "bg-surface text-fg" : "text-muted"}`}
                 >
                   <span className="truncate">
-                    {c.group && <span className="mr-2 text-xs text-muted/70 uppercase">{c.group}</span>}
+                    {c.group && <span className="mr-2 text-xs text-muted uppercase">{c.group}</span>}
                     {c.label}
                   </span>
-                  {c.hint && <span className="telemetry shrink-0 text-muted/70">{c.hint}</span>}
+                  {c.hint && <span className="telemetry shrink-0 text-muted">{c.hint}</span>}
                 </button>
               </li>
             ))

@@ -2,7 +2,7 @@ import { sentimentBucket, type Bucket } from "@/lib/format";
 import type { EnrichedArticle } from "@/types/metrics";
 
 const TONE_LABEL: Record<Bucket, string> = { bull: "Pos", bear: "Neg", neutral: "Neu" };
-const TONE_CLASS: Record<Bucket, string> = { bull: "bg-bull/15 text-bull", bear: "bg-accent-soft text-accent", neutral: "bg-surface-2 text-muted" };
+const TONE_CLASS: Record<Bucket, string> = { bull: "bg-bull/15 text-bull", bear: "bg-accent-soft text-accent-400", neutral: "bg-surface-2 text-muted" };
 
 /** Compact headline list for the brief strip. */
 export function LatestFeed({ news }: { news: EnrichedArticle[] }) {

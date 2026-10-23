@@ -112,6 +112,7 @@ Every push and PR runs [`ci.yml`](.github/workflows/ci.yml) (typecheck → lint 
 
 - **Initial JS budget:** `npm run size` sums the gzip size of every script the prerendered page loads (skipping `noModule` polyfills, which modern browsers never fetch) and fails above 180 kB. Currently ~165 kB; MapLibre, deck.gl, the inspector, palette, help, media viewer and asset drawer are all lazy chunks.
 - **Playwright smoke** (`e2e/`): health endpoint, shell renders with no uncaught errors and the WebGL globe mounts (SwiftShader on CI), URL deep link ⇄ layer toggles, and the lazily loaded ⌘K palette.
+- **Contrast guard:** `e2e/a11y.spec.ts` runs axe `color-contrast` (WCAG AA) in light and dark over every intel tab, the layer dock, inspector, ⌘K palette, help overlay and a mobile viewport. Text on the brand red uses `--accent` `#d42a10` (white 5.1:1); red *text* uses `--accent-400`, which is tuned per theme.
 - **Lighthouse** (local production build, desktop preset): Accessibility 95 · Best Practices 100 · SEO 100 · CLS 0 (desktop and mobile). The performance score is dominated by the WebGL globe, which headless Lighthouse renders on the CPU (SwiftShader), so it says little about real GPUs.
 - Layout stability: the top-signal row and threat chip reserve their space before data arrives, so the map doesn't jump on load (CLS was 0.32 before).
 

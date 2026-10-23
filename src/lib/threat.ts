@@ -17,5 +17,5 @@ export const THREAT_COLOR: Record<ThreatLevel, string> = {
   LOW: "var(--bull)",
   GUARDED: "var(--neutral)",
   ELEVATED: "var(--amber)",
-  HIGH: "var(--accent)"
+  HIGH: "var(--accent-400)"
 };

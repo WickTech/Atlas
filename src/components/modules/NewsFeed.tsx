@@ -114,7 +114,7 @@ export function NewsFeed({ news, filter, selectedCountry, categories, onCategory
               onCategory(c.key);
               reset();
             }} className={chipBtn(category === c.key)}>
-              {c.label} <span className="opacity-70">{c.count}</span>
+              {c.label} <span className="font-normal">{c.count}</span>
             </button>
           ))}
         </div>
@@ -122,7 +122,7 @@ export function NewsFeed({ news, filter, selectedCountry, categories, onCategory
 
       {selectedCountry && (
         <div className="flex items-center gap-2 text-sm">
-          <span className="chip bg-accent-soft text-accent">📍 {selectedCountry}</span>
+          <span className="chip bg-accent-soft text-accent-400">📍 {selectedCountry}</span>
           <button type="button" onClick={onClearCountry} className="text-xs text-muted underline hover:text-fg">
             clear
           </button>
@@ -139,7 +139,7 @@ export function NewsFeed({ news, filter, selectedCountry, categories, onCategory
           <button
             type="button"
             onClick={() => setVisible((v) => v + PAGE_SIZE)}
-            className="mt-1 self-center border border-border bg-surface-2 px-4 py-2 text-sm font-medium text-fg transition hover:border-accent hover:text-accent"
+            className="mt-1 self-center border border-border bg-surface-2 px-4 py-2 text-sm font-medium text-fg transition hover:border-accent hover:text-accent-400"
           >
             Load more
           </button>
