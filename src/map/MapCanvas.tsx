@@ -10,6 +10,7 @@ import { LAYER_OF_KIND, type GeoItem } from "@/layers/types";
 import type { LiveData } from "@/layers/useLiveLayers";
 import { clusterByCountry, filterNews, type CountryCluster } from "@/lib/news";
 import { relativeTime } from "@/lib/format";
+import { palette, riskStateFillColor, riskStateFillOpacity, type ThemeMode } from "@/lib/theme";
 import { selectedCountryOf, useConsole } from "@/state/store";
 import type { Metrics } from "@/types/metrics";
 
@@ -24,6 +25,20 @@ const LINE = "country-risk-line";
 
 /** First symbol layer: risk fills go beneath basemap labels so names stay legible. */
 const firstSymbolLayer = (map: MapLibre) => map.getStyle().layers?.find((l) => l.type === "symbol")?.id;
+
+const themeMode = (): ThemeMode => (document.documentElement.classList.contains("light") ? "light" : "dark");
+
+/**
+ * Basemap land and ocean follow the theme's slate palette. The vector styles
+ * (OpenFreeMap, CARTO) name these layers "background" (land) and "water"/"waterway";
+ * if a fallback style names them differently we just keep its own colours.
+ */
+const paintBasemap = (map: MapLibre, mode: ThemeMode) => {
+  const { land, ocean } = palette[mode].map;
+  if (map.getLayer("background")) map.setPaintProperty("background", "background-color", land);
+  if (map.getLayer("water")) map.setPaintProperty("water", "fill-color", ocean);
+  if (map.getLayer("waterway")) map.setPaintProperty("waterway", "line-color", ocean);
+};
 
 const prefersReducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -108,7 +123,7 @@ export default function MapCanvas({ metrics, theme, live, countries }: Props) {
     // failed request for the style document itself qualifies.
     map.on("error", (e) => {
       if (usedFallback || !(e.error instanceof AJAXError)) return;
-      const t = document.documentElement.classList.contains("light") ? "light" : "dark";
+      const t = themeMode();
       if (e.error.url !== BASEMAPS[t].primary) return;
       usedFallback = true;
       map.setStyle(BASEMAPS[t].fallback);
@@ -117,6 +132,8 @@ export default function MapCanvas({ metrics, theme, live, countries }: Props) {
     // (Re)install native layers whenever a style finishes loading (initial + theme swaps).
     map.on("style.load", async () => {
       map.setProjection({ type: "globe" });
+      const mode = themeMode();
+      paintBasemap(map, mode);
       const data = await loadCountries(); // shared promise with useCountries()
       if (!map.getSource(SOURCE)) map.addSource(SOURCE, { type: "geojson", data: data.geojson, promoteId: "name" });
       const before = firstSymbolLayer(map);
@@ -127,15 +144,9 @@ export default function MapCanvas({ metrics, theme, live, countries }: Props) {
             type: "fill",
             source: SOURCE,
             paint: {
-              "fill-color": [
-                "interpolate",
-                ["linear"],
-                ["coalesce", ["feature-state", "score"], -1],
-                -1, "rgba(0,0,0,0)",
-                0, "rgba(236,48,19,0.10)",
-                50, "rgba(236,48,19,0.45)",
-                100, "rgba(236,48,19,0.85)"
-              ]
+              // Severity ramp: calm countries stay neutral, only high scores turn warm.
+              "fill-color": riskStateFillColor(mode),
+              "fill-opacity": riskStateFillOpacity(mode)
             }
           },
           before
@@ -148,7 +159,7 @@ export default function MapCanvas({ metrics, theme, live, countries }: Props) {
             type: "line",
             source: SOURCE,
             paint: {
-              "line-color": ["case", ["boolean", ["feature-state", "selected"], false], "#ec3013", "rgba(128,128,128,0.35)"],
+              "line-color": ["case", ["boolean", ["feature-state", "selected"], false], palette[mode].accent, palette[mode].map.landLine],
               "line-width": ["case", ["boolean", ["feature-state", "selected"], false], 2, 0.5]
             }
           },
@@ -219,8 +230,8 @@ export default function MapCanvas({ metrics, theme, live, countries }: Props) {
     if (selected) map.setFeatureState({ source: SOURCE, id: selected }, { selected: true });
     const visible = layers.risk.enabled ? "visible" : "none";
     map.setLayoutProperty(FILL, "visibility", visible);
-    map.setPaintProperty(FILL, "fill-opacity", layers.risk.opacity);
-  }, [metrics.countryIndex, selected, styleGen, layers.risk.enabled, layers.risk.opacity]);
+    map.setPaintProperty(FILL, "fill-opacity", riskStateFillOpacity(theme, layers.risk.opacity));
+  }, [metrics.countryIndex, selected, styleGen, theme, layers.risk.enabled, layers.risk.opacity]);
 
   // Layer telemetry for the dock: live entity counts.
   useEffect(() => {
@@ -269,7 +280,7 @@ export default function MapCanvas({ metrics, theme, live, countries }: Props) {
       select({ kind: "entity", layer: LAYER_OF_KIND[item.kind], id: item.id, coord: item.coord });
     };
     deckInput.current = {
-      extra: liveLayers({ data: live, zoom: viewportZoom, layers, selectedId: selectedEntityId, onHover: onItemHover, onClick: onItemClick }),
+      extra: liveLayers({ data: live, zoom: viewportZoom, layers, selectedId: selectedEntityId, dark: theme === "dark", onHover: onItemHover, onClick: onItemClick }),
       enabled: layers.news.enabled,
       clusters,
       selected,

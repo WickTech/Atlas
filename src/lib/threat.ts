@@ -13,9 +13,12 @@ export const threatLevel = (signals: Signal[]): { level: ThreatLevel; highs: num
   return { level, highs };
 };
 
+/** Threat posture on the shared severity ramp (steps 1-4; red stays reserved for severe scores). */
 export const THREAT_COLOR: Record<ThreatLevel, string> = {
-  LOW: "var(--bull)",
-  GUARDED: "var(--neutral)",
-  ELEVATED: "var(--amber)",
-  HIGH: "var(--accent-400)"
+  LOW: "var(--sev-1)",
+  GUARDED: "var(--sev-2)",
+  ELEVATED: "var(--sev-3)",
+  HIGH: "var(--sev-4)"
 };
+/** Tinted chip background for the same level. */
+export const threatSoft = (level: ThreatLevel) => `color-mix(in srgb, ${THREAT_COLOR[level]} 14%, transparent)`;

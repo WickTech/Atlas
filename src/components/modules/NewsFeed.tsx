@@ -17,10 +17,10 @@ const SENTIMENTS: { key: Bucket | "all"; label: string }[] = [
 ];
 
 const segBtn = (active: boolean, first: boolean) =>
-  `px-2.5 py-1 text-xs font-bold transition ${first ? "" : "border-l border-border"} ${active ? "bg-accent text-white" : "text-muted hover:text-fg"}`;
+  `px-2.5 py-1 text-xs font-bold transition ${first ? "" : "border-l border-border"} ${active ? "bg-accent text-on-accent" : "text-muted hover:text-fg"}`;
 
 const chipBtn = (active: boolean) =>
-  `shrink-0 border px-3 py-1 text-xs font-bold transition ${active ? "border-accent bg-accent text-white" : "border-border bg-surface-2 text-muted hover:text-fg"}`;
+  `shrink-0 border px-3 py-1 text-xs font-bold transition ${active ? "border-accent bg-accent text-on-accent" : "border-border bg-surface-2 text-muted hover:text-fg"}`;
 
 interface Props {
   news: EnrichedArticle[];

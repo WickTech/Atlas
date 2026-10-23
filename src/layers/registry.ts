@@ -24,7 +24,7 @@ export const LAYERS: LayerDef[] = [
     label: "Regional risk",
     group: "Intel",
     hotkey: "r",
-    swatch: "var(--accent)",
+    swatch: "var(--sev-4)",
     description: "Country instability index: recency-weighted news volume blended with negative tone.",
     source: "Atlas index over publisher RSS / GDELT"
   },
@@ -33,7 +33,7 @@ export const LAYERS: LayerDef[] = [
     label: "Live news",
     group: "Intel",
     hotkey: "n",
-    swatch: "var(--amber)",
+    swatch: "var(--cat-news)",
     description: "One marker per country, sized by story count, placed at the country's main landmass.",
     source: "Publisher RSS (13 feeds)"
   },
@@ -42,7 +42,7 @@ export const LAYERS: LayerDef[] = [
     label: "Earthquakes",
     group: "Hazards",
     hotkey: "e",
-    swatch: "#ff6b3d",
+    swatch: "var(--cat-quakes)",
     description: "M2.5+ in the last 24 h. Size = magnitude; deep (>70 km) events drawn amber.",
     source: "USGS real-time feed"
   },
@@ -51,7 +51,7 @@ export const LAYERS: LayerDef[] = [
     label: "Disasters",
     group: "Hazards",
     hotkey: "h",
-    swatch: "#e0952a",
+    swatch: "var(--cat-disasters)",
     description: "Open natural events (storms, wildfires, volcanoes, floods) plus current GDACS impact alerts. Sea-ice tracking and minor (green) GDACS wildfires excluded.",
     source: "NASA EONET · GDACS"
   },
@@ -60,7 +60,7 @@ export const LAYERS: LayerDef[] = [
     label: "Aircraft",
     group: "Movement",
     hotkey: "f",
-    swatch: "#7fd1ff",
+    swatch: "var(--cat-aircraft)",
     description: "Live ADS-B positions in the visible area, rotated by heading; military-flagged airframes in red.",
     source: "adsb.lol (community ADS-B, ODbL)",
     hint: "zoom ≥ 4"
@@ -70,7 +70,7 @@ export const LAYERS: LayerDef[] = [
     label: "Internet outages",
     group: "Infrastructure",
     hotkey: "c",
-    swatch: "#b48cff",
+    swatch: "var(--cat-outages)",
     description: "Country-level connectivity disruptions (BGP, active probing, Google traffic) in the last 24 h, plus known botnet C2 hosting.",
     source: "IODA (Georgia Tech) · abuse.ch Feodo Tracker"
   },
@@ -79,7 +79,7 @@ export const LAYERS: LayerDef[] = [
     label: "Traffic cameras",
     group: "Media",
     hotkey: "v",
-    swatch: "#5fd48c",
+    swatch: "var(--cat-media)",
     description: "Public London road cameras; click for the latest still.",
     source: "TfL JamCams (Open Government Licence)",
     hint: "London"
@@ -89,7 +89,7 @@ export const LAYERS: LayerDef[] = [
     label: "Live TV",
     group: "Media",
     hotkey: "b",
-    swatch: "var(--fg)",
+    swatch: "var(--cat-media)",
     description: "24/7 news channels at their newsroom city; click to watch the live stream.",
     source: "YouTube live embeds"
   },
@@ -98,7 +98,7 @@ export const LAYERS: LayerDef[] = [
     label: "Chokepoints & ports",
     group: "Infrastructure",
     hotkey: "p",
-    swatch: "#9aa5b1",
+    swatch: "var(--cat-chokepoints)",
     description: "Maritime chokepoints, major container ports and long-running flashpoint areas. Static reference — not live status.",
     source: "U.S. EIA · Lloyd's List · ICG CrisisWatch"
   }

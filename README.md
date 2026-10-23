@@ -16,7 +16,7 @@ Real-time global situational-awareness console — country risk, cross-stream si
 ## Stack
 
 - **Next.js 16** (App Router) + **React 19** + **TypeScript** (strict, `noUncheckedIndexedAccess`)
-- **Tailwind CSS v4** — Modernist design tokens (ink / red / Archivo, 0 radius) + HUD layer (JetBrains Mono telemetry, glass map overlays)
+- **Tailwind CSS v4** — colour system v2 ([docs/colour-system-v2.md](docs/colour-system-v2.md)): cool slate ground, blue = interactive, a 5-step warm severity ramp for risk (red only for the worst), per-layer category hues; Archivo, 0 radius, JetBrains Mono telemetry, glass map overlays
 - **MapLibre GL v5 + deck.gl 9** — one WebGL context: native feature-state choropleth for risk, deck.gl layers interleaved on the globe (MapLibre v6 drops the `map.transform` API deck.gl's overlay needs, so v5 is pinned until deck.gl supports it)
 - **Zustand** — control state (layers, filters, camera, selection, telemetry) with debounced two-way **URL sync** for shareable deep links
 - **TanStack Query** — polling that pauses in background tabs, exponential backoff, last-good-data retention
@@ -112,7 +112,7 @@ Every push and PR runs [`ci.yml`](.github/workflows/ci.yml) (audit gate → type
 
 - **Initial JS budget:** `npm run size` sums the gzip size of every script the prerendered page loads (skipping `noModule` polyfills, which modern browsers never fetch) and fails above 180 kB. Currently ~165 kB; MapLibre, deck.gl, the inspector, palette, help, media viewer and asset drawer are all lazy chunks.
 - **Playwright smoke** (`e2e/`): health endpoint, shell renders with no uncaught errors and the WebGL globe mounts (SwiftShader on CI), URL deep link ⇄ layer toggles, and the lazily loaded ⌘K palette.
-- **Contrast guard:** `e2e/a11y.spec.ts` runs axe `color-contrast` (WCAG AA) in light and dark over every intel tab, the layer dock, inspector, ⌘K palette, help overlay and a mobile viewport. Text on the brand red uses `--accent` `#d42a10` (white 5.1:1); red *text* uses `--accent-400`, which is tuned per theme.
+- **Contrast guard:** `e2e/a11y.spec.ts` runs axe `color-contrast` (WCAG AA) in light and dark over every intel tab, the layer dock, inspector, ⌘K palette, help overlay and a mobile viewport. Colour is semantic (blue `--accent` = interactive, `--sev-1..5` = severity, `--cat-*` = layer kind) and every token pair is checked by axe.
 - **Lighthouse** (local production build, desktop preset): Accessibility 95 · Best Practices 100 · SEO 100 · CLS 0 (desktop and mobile). The performance score is dominated by the WebGL globe, which headless Lighthouse renders on the CPU (SwiftShader), so it says little about real GPUs.
 - Layout stability: the top-signal row and threat chip reserve their space before data arrives, so the map doesn't jump on load (CLS was 0.32 before).
 

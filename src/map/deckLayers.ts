@@ -10,7 +10,7 @@ import { flightItem } from "@/layers/flights";
 import type { FlightTuple } from "@/server/live";
 import type { LayerId, LayerState } from "@/state/types";
 
-import { ACCENT, AMBER, GREEN, HAZARD_COLORS, HAZARD_DEFAULT, INK, MILITARY, PAPER, QUAKE_DEEP, QUAKE_SHALLOW, SKY, STEEL, VIOLET, withAlpha } from "./palette";
+import { deckColors, withAlpha } from "./palette";
 
 export interface NewsLayerOpts {
   clusters: CountryCluster[];
@@ -41,7 +41,7 @@ const flightZ = (altFt: number) => Math.max(LIFT_M, altFt * 0.3048);
 export const hotspots = (clusters: CountryCluster[], n = 3) => clusters.slice(-n);
 
 export const newsLayers = ({ clusters, selected, opacity, dark, onClick, onHover }: NewsLayerOpts) => {
-  const outline = dark ? INK : PAPER;
+  const c = deckColors(dark);
   return [
     new ScatterplotLayer<CountryCluster>({
       id: "news-markers",
@@ -49,15 +49,15 @@ export const newsLayers = ({ clusters, selected, opacity, dark, onClick, onHover
       getPosition: (d) => lift(d.coord),
       getRadius: (d) => radiusPx(d.count),
       radiusUnits: "pixels",
-      getFillColor: (d) => withAlpha(d.name === selected ? ACCENT : AMBER, d.name === selected ? 0.95 : 0.8),
-      getLineColor: withAlpha(outline, 0.9),
+      getFillColor: (d) => withAlpha(d.name === selected ? c.selected : c.news, d.name === selected ? 0.95 : 0.8),
+      getLineColor: withAlpha(c.outline, 0.9),
       lineWidthUnits: "pixels",
       getLineWidth: 1.25,
       stroked: true,
       opacity,
       pickable: true,
       autoHighlight: true,
-      highlightColor: withAlpha(ACCENT, 1),
+      highlightColor: withAlpha(c.selected, 1),
       onClick: (info) => info.object && onClick(info.object),
       onHover,
       updateTriggers: { getFillColor: [selected] }
@@ -93,11 +93,13 @@ export interface LiveLayerOpts {
   zoom: number;
   layers: Record<LayerId, LayerState>;
   selectedId: string | null;
+  dark: boolean;
   onHover: (item: GeoItem | null, x: number, y: number) => void;
   onClick: (item: GeoItem) => void;
 }
 
-export const liveLayers = ({ data, zoom, layers, selectedId, onHover, onClick }: LiveLayerOpts) => {
+export const liveLayers = ({ data, zoom, layers, selectedId, dark, onHover, onClick }: LiveLayerOpts) => {
+  const c = deckColors(dark);
   const common = {
     pickable: true,
     radiusUnits: "pixels" as const,
@@ -119,8 +121,8 @@ export const liveLayers = ({ data, zoom, layers, selectedId, onHover, onClick }:
         getPosition: (d) => lift(d.coord),
         getRadius: (d) => (d.kind === "port" ? 3.5 : d.kind === "chokepoint" ? 6 : 9),
         filled: true,
-        getFillColor: (d) => withAlpha(d.kind === "flashpoint" ? MILITARY : STEEL, d.kind === "flashpoint" ? 0.18 : d.kind === "port" ? 0.85 : 0.25),
-        getLineColor: (d) => withAlpha(d.kind === "flashpoint" ? MILITARY : STEEL, 0.9),
+        getFillColor: (d) => withAlpha(d.kind === "flashpoint" ? c.warning : c.chokepoints, d.kind === "flashpoint" ? 0.18 : d.kind === "port" ? 0.85 : 0.25),
+        getLineColor: (d) => withAlpha(d.kind === "flashpoint" ? c.warning : c.chokepoints, 0.9),
         getLineWidth: (d) => ring(d.id) * (d.kind === "port" ? 0.5 : 1.5),
         updateTriggers: { getLineWidth: [selectedId] }
       })
@@ -136,8 +138,8 @@ export const liveLayers = ({ data, zoom, layers, selectedId, onHover, onClick }:
         opacity: layers.hazards.opacity,
         getPosition: (d) => lift(d.coord),
         getRadius: (d) => (d.severity === "high" ? 9 : d.severity === "medium" ? 6.5 : 4.5),
-        getFillColor: (d) => withAlpha(HAZARD_COLORS[d.category ?? ""] ?? HAZARD_DEFAULT, SEV_ALPHA[d.severity]),
-        getLineColor: [255, 255, 255, 160],
+        getFillColor: (d) => withAlpha(c.disasters, SEV_ALPHA[d.severity]),
+        getLineColor: withAlpha(c.outline, 0.63),
         getLineWidth: (d) => ring(d.id) * (d.source === "GDACS" ? 1.5 : 0.75),
         updateTriggers: { getLineWidth: [selectedId] }
       })
@@ -155,8 +157,9 @@ export const liveLayers = ({ data, zoom, layers, selectedId, onHover, onClick }:
         // Energy grows ~32x per magnitude; a gentle exponent keeps M7 readable without swamping M3.
         getRadius: (d) => 2 + Math.pow(Math.max(0, d.value ?? 0), 1.6) * 0.9,
         // Rings (seismic-map convention) so quakes never read as news discs.
-        getFillColor: (d) => withAlpha(d.category === "deep" ? QUAKE_DEEP : QUAKE_SHALLOW, 0.12),
-        getLineColor: (d) => withAlpha(d.category === "deep" ? QUAKE_DEEP : QUAKE_SHALLOW, 1),
+        getFillColor: withAlpha(c.quakes, 0.12),
+        // Deep quakes are fainter rings than shallow ones (shallow ones shake more).
+        getLineColor: (d) => withAlpha(c.quakes, d.category === "deep" ? 0.55 : 1),
         getLineWidth: (d) => ring(d.id) * 1.75,
         updateTriggers: { getLineWidth: [selectedId] }
       })
@@ -172,8 +175,8 @@ export const liveLayers = ({ data, zoom, layers, selectedId, onHover, onClick }:
         opacity: layers.cyber.opacity,
         getPosition: (d) => lift(d.coord),
         getRadius: (d) => (d.kind === "c2" ? 3 : 3 + (d.value ?? 0) * 1.6),
-        getFillColor: (d) => withAlpha(VIOLET, d.kind === "c2" ? 0.95 : 0.3),
-        getLineColor: withAlpha(VIOLET, 1),
+        getFillColor: (d) => withAlpha(c.outages, d.kind === "c2" ? 0.95 : 0.3),
+        getLineColor: withAlpha(c.outages, 1),
         getLineWidth: (d) => ring(d.id) * (d.kind === "c2" ? 0.5 : 1.25),
         updateTriggers: { getLineWidth: [selectedId] }
       })
@@ -189,8 +192,8 @@ export const liveLayers = ({ data, zoom, layers, selectedId, onHover, onClick }:
         opacity: layers.cctv.opacity,
         getPosition: (d) => lift(d.coord),
         getRadius: 2.5,
-        getFillColor: withAlpha(GREEN, 0.9),
-        getLineColor: [0, 0, 0, 120],
+        getFillColor: withAlpha(c.media, 0.9),
+        getLineColor: withAlpha(c.outline, 0.47),
         getLineWidth: (d) => ring(d.id) * 0.5,
         updateTriggers: { getLineWidth: [selectedId] }
       })
@@ -206,8 +209,8 @@ export const liveLayers = ({ data, zoom, layers, selectedId, onHover, onClick }:
         opacity: layers.broadcasts.opacity,
         getPosition: (d) => lift(d.coord),
         getRadius: 7,
-        getFillColor: withAlpha(MILITARY, 0.9),
-        getLineColor: [248, 244, 244, 255],
+        getFillColor: withAlpha(c.media, 0.95),
+        getLineColor: withAlpha(c.outline, 1),
         getLineWidth: (d) => ring(d.id) * 1.5,
         updateTriggers: { getLineWidth: [selectedId] }
       })
@@ -215,7 +218,7 @@ export const liveLayers = ({ data, zoom, layers, selectedId, onHover, onClick }:
   }
 
   if (layers.flights.enabled && data.flights.length) {
-    const color = (d: FlightTuple) => withAlpha(d[8] ? MILITARY : SKY, d[4] < 0 ? 0.45 : 0.95);
+    const color = (d: FlightTuple) => withAlpha(d[8] ? c.warning : c.aircraft, d[4] < 0 ? 0.45 : 0.95);
     const flightHover = (info: PickingInfo<FlightTuple>) => onHover(info.object ? flightItem(info.object) : null, info.x, info.y);
     const flightClick = (info: PickingInfo<FlightTuple>) => info.object && onClick(flightItem(info.object));
     out.push(

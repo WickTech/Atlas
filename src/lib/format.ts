@@ -75,7 +75,10 @@ export const sentimentChipClass = (v: string | number | null | undefined) => CHI
 const COLOR: Record<Bucket, string> = { bull: "var(--bull)", bear: "var(--bear)", neutral: "var(--neutral)" };
 export const sentimentColor = (v: string | number | null | undefined) => COLOR[sentimentBucket(v)];
 
+/** Direction glyph so a price move is never signalled by colour alone. Zero counts as up, like deltaClass. */
+export const deltaArrow = (value: Num) => (value == null ? "" : value >= 0 ? "▲" : "▼");
+
 export const deltaClass = (value: Num) => (value == null ? "text-muted" : value >= 0 ? "text-bull" : "text-bear");
 
-const SEV: Record<Severity, string> = { high: "var(--accent)", medium: "var(--amber)", low: "var(--neutral)" };
+const SEV: Record<Severity, string> = { high: "var(--sev-5)", medium: "var(--sev-3)", low: "var(--sev-1)" };
 export const sevColor = (severity: Severity) => SEV[severity];

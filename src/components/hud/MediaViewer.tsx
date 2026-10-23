@@ -32,7 +32,7 @@ export function MediaViewer() {
       aria-label={`${media.kind === "broadcast" ? "Live broadcast" : "Traffic camera"}: ${media.title}`}
     >
       <header className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <span className="live-dot shrink-0" style={{ background: "var(--accent)", color: "var(--accent)" }} aria-hidden="true" />
+        <span className="live-dot shrink-0" style={{ background: "var(--sev-5)", color: "var(--sev-5)" }} aria-hidden="true" />
         <h2 className="min-w-0 flex-1 truncate text-[12.5px] font-bold">{media.title}</h2>
         {media.url && (
           <a href={media.url} target="_blank" rel="noreferrer" className="text-muted hover:text-fg" aria-label="Open source in a new tab">
