@@ -60,14 +60,17 @@ export function TopBar({ status, threat, theme, onToggleTheme, searchRef }: Prop
         <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
       </div>
 
-      {threat && (
+      {/* Fixed-width slot, shown before metrics arrive too, so the bar never re-wraps on load (CLS). */}
+      {threat ? (
         <span
-          className="telemetry inline-flex items-center gap-1.5 border px-2 py-0.5 font-semibold"
+          className="telemetry inline-flex min-w-[17ch] items-center gap-1.5 border px-2 py-0.5 font-semibold"
           style={{ color: THREAT_COLOR[threat.level], borderColor: THREAT_COLOR[threat.level] }}
           title={`Threat posture from live signals: ${threat.highs} high-severity signal${threat.highs === 1 ? "" : "s"} (0 low · 1 guarded · 2–3 elevated · 4+ high)`}
         >
           THREAT {threat.level}
         </span>
+      ) : (
+        <span className="telemetry inline-flex min-w-[17ch] items-center border border-border px-2 py-0.5 font-semibold text-muted">THREAT ···</span>
       )}
 
       <div className="inline-flex border border-border" role="group" aria-label="Lens">

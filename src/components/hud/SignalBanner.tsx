@@ -13,7 +13,7 @@ export function SignalBanner({ signal, onSelectCountry }: { signal: Signal | nul
       type="button"
       disabled={!clickable}
       onClick={() => clickable && onSelectCountry(signal.subject)}
-      className="flex w-full shrink-0 items-center gap-2.5 bg-accent px-3 py-1.5 text-left text-white enabled:hover:brightness-110 sm:px-4"
+      className="flex h-8 w-full shrink-0 items-center gap-2.5 bg-accent px-3 py-1.5 text-left text-white enabled:hover:brightness-110 sm:px-4"
       title={clickable ? `Focus ${signal.subject} on the map` : undefined}
     >
       <span className="telemetry flex-none border border-white/60 px-1.5 py-px text-[10px] font-semibold tracking-[.1em]">TOP SIGNAL</span>

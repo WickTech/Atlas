@@ -15,15 +15,12 @@ import { useUrlSync } from "@/state/urlSync";
 import { useCountries } from "@/map/useCountries";
 
 import { SignalBanner } from "./hud/SignalBanner";
-import { CommandPalette, type Command } from "./hud/CommandPalette";
-import { HelpOverlay } from "./hud/HelpOverlay";
+import type { Command } from "./hud/CommandPalette";
 import { LayerDock } from "./hud/LayerDock";
-import { MediaViewer } from "./hud/MediaViewer";
 import { Sidebar } from "./hud/Sidebar";
 import { StatusBar } from "./hud/StatusBar";
 import { TopBar } from "./hud/TopBar";
 import { AiBriefs } from "./modules/AiBriefs";
-import { AssetDetailDrawer } from "./modules/AssetDetailDrawer";
 import { CountryRiskPanel } from "./modules/CountryRiskPanel";
 import { KpiStrip } from "./modules/KpiStrip";
 import { LatestFeed } from "./modules/LatestFeed";
@@ -35,6 +32,10 @@ import { SignalsPanel } from "./modules/SignalsPanel";
 // Code that only renders on interaction stays out of the initial chunk.
 const Inspector = dynamic(() => import("./inspector/Inspector").then((m) => m.Inspector), { ssr: false });
 const AiSettings = dynamic(() => import("./hud/AiSettings").then((m) => m.AiSettings), { ssr: false });
+const CommandPalette = dynamic(() => import("./hud/CommandPalette").then((m) => m.CommandPalette), { ssr: false });
+const HelpOverlay = dynamic(() => import("./hud/HelpOverlay").then((m) => m.HelpOverlay), { ssr: false });
+const MediaViewer = dynamic(() => import("./hud/MediaViewer").then((m) => m.MediaViewer), { ssr: false });
+const AssetDetailDrawer = dynamic(() => import("./modules/AssetDetailDrawer").then((m) => m.AssetDetailDrawer), { ssr: false });
 
 // MapLibre + deck.gl are the heaviest dependencies; keep them out of the
 // initial chunk and off the server entirely.
@@ -109,7 +110,12 @@ export function Console() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <TopBar status={status} threat={threat} theme={theme} onToggleTheme={toggleTheme} searchRef={searchRef} />
-      {metrics && <SignalBanner signal={topSignal} onSelectCountry={(name) => select({ kind: "country", name })} />}
+      {/* Hold the banner's row while metrics load so the map doesn't jump down (CLS). */}
+      {metrics ? (
+        <SignalBanner signal={topSignal} onSelectCountry={(name) => select({ kind: "country", name })} />
+      ) : (
+        <div className="h-8 shrink-0 border-b border-border" aria-hidden="true" />
+      )}
 
       <div className="relative flex min-h-0 flex-1">
         <main className="relative min-w-0 flex-1" aria-label="Map">
@@ -177,11 +183,11 @@ export function Console() {
 
       {metrics && <StatusBar metrics={metrics} />}
 
-      {metrics && <AssetDetailDrawer ticker={ui.ticker} metrics={metrics} onClose={() => setUi({ ticker: null })} />}
+      {metrics && ui.ticker && <AssetDetailDrawer ticker={ui.ticker} metrics={metrics} onClose={() => setUi({ ticker: null })} />}
       {ui.modal === "palette" && <CommandPalette onClose={() => setUi({ modal: null })} commands={commands} />}
       {ui.modal === "help" && <HelpOverlay onClose={() => setUi({ modal: null })} />}
       {ui.modal === "ai" && <AiSettings onClose={() => setUi({ modal: null })} />}
-      <MediaViewer />
+      {ui.media && <MediaViewer />}
     </div>
   );
 }
