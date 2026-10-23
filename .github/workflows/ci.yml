@@ -25,6 +25,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Dependency audit
+        run: npm run audit:gate
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test

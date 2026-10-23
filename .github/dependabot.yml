@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Let a release age a week before proposing it (supply-chain hygiene).
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # maplibre-gl 6 removed public `map.transform`, which deck.gl 9.4's MapboxOverlay
+      # reads. Lift this once deck.gl ships MapLibre 6 support (see SECURITY.md).
+      - dependency-name: maplibre-gl
+        update-types: [version-update:semver-major]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
