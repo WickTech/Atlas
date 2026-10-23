@@ -1,6 +1,10 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+// Axe walks the whole DOM next to a software-rendered (SwiftShader) WebGL globe, so these
+// specs take 30-60 s when the machine is busy. The default 60 s timeout made them flaky.
+test.describe.configure({ timeout: 150_000 });
+
 // WCAG AA contrast guard for both themes, every intel tab, and the overlays
 // that only render on interaction (inspector, command palette).
 const contrast = async (page: Page) => {
@@ -46,3 +50,17 @@ for (const scheme of ["light", "dark"] as const) {
     });
   });
 }
+
+test("heading levels never skip (layer dock, then inspector)", async ({ page }) => {
+  const headingOrder = async () => {
+    const { violations } = await new AxeBuilder({ page }).withRules(["heading-order", "page-has-heading-one"]).analyze();
+    return violations.flatMap((v) => v.nodes.map((n) => n.target.join(" ")));
+  };
+  await page.goto("/?l=risk,news");
+  await expect(page.getByRole("complementary", { name: "Map layers" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Intelligence layers" })).toBeVisible();
+  expect(await headingOrder(), "dock").toEqual([]);
+  await page.goto("/?l=risk,news&c=India");
+  await expect(page.getByRole("complementary", { name: /inspector/i })).toBeVisible({ timeout: 30_000 });
+  expect(await headingOrder(), "inspector").toEqual([]);
+});

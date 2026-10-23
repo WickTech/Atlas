@@ -39,7 +39,7 @@ export function LayerDock({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <aside className="glass absolute top-3 left-3 z-20 flex max-h-[calc(100%-1.5rem)] w-64 max-w-[calc(100%-1.5rem)] flex-col" aria-label="Map layers">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <span className="eyebrow">Intelligence layers</span>
+        <h2 className="eyebrow">Intelligence layers</h2>
         <button type="button" onClick={() => setUi({ leftOpen: false })} className="text-muted hover:text-fg" aria-label="Hide layers ([)">
           <X size={14} />
         </button>
