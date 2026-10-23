@@ -40,16 +40,23 @@ const TOPIC_MAP: Record<string, string> = {
   real_estate: "markets"
 };
 
-// Word-boundary match so short keywords ("ai", "app", "war") don't fire on
-// substrings ("said", "happen", "software").
-const keywordRes = new Map(
-  CATEGORIES.map((c) => [
-    c.key,
-    // Built only from the constant, escaped keyword lists above (literal alternation, no user input).
-    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
-    new RegExp(`\\b(${c.keywords.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "i")
-  ])
-);
+const WORD_CHAR = /\w/;
+
+/**
+ * True when `phrase` occurs in `text` as whole words, i.e. not inside a longer
+ * word, so short keywords ("ai", "app", "war") don't fire on substrings ("said",
+ * "happen", "software"). Same boundary semantics as `\b...\b` for the plain
+ * letter/digit/space keywords above, but a plain substring scan: no RegExp is
+ * built from data, so there is no ReDoS surface. Both arguments are lower-case.
+ */
+export const hasWholePhrase = (text: string, phrase: string): boolean => {
+  for (let i = text.indexOf(phrase); i !== -1; i = text.indexOf(phrase, i + 1)) {
+    const before = text[i - 1];
+    const after = text[i + phrase.length];
+    if ((before === undefined || !WORD_CHAR.test(before)) && (after === undefined || !WORD_CHAR.test(after))) return true;
+  }
+  return false;
+};
 
 /** Returns the category key for one article. */
 export const classifyArticle = (article: Pick<Article, "title" | "summary" | "topics">): string => {
@@ -57,9 +64,9 @@ export const classifyArticle = (article: Pick<Article, "title" | "summary" | "to
     const mapped = TOPIC_MAP[String(t).toLowerCase()];
     if (mapped) return mapped;
   }
-  const hay = `${article.title ?? ""} ${article.summary ?? ""}`;
+  const hay = `${article.title ?? ""} ${article.summary ?? ""}`.toLowerCase();
   for (const cat of CATEGORIES) {
-    if (keywordRes.get(cat.key)?.test(hay)) return cat.key;
+    if (cat.keywords.some((k) => hasWholePhrase(hay, k))) return cat.key;
   }
   return DEFAULT_CATEGORY.key;
 };
