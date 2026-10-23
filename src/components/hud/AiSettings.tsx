@@ -87,7 +87,7 @@ export function AiSettings({ onClose }: { onClose: () => void }) {
           server. Anyone with access to this browser profile can read it; remove it on shared machines.
         </p>
         {note && (
-          <p className="text-[11px] text-accent-400" role="alert">
+          <p className="text-[11px] text-sev-5" role="alert">
             {note}
           </p>
         )}
@@ -104,7 +104,7 @@ export function AiSettings({ onClose }: { onClose: () => void }) {
             <button type="button" onClick={onClose} className="border border-border px-3 py-1.5 text-[11px] font-bold text-muted hover:text-fg">
               Cancel
             </button>
-            <button type="submit" className="border border-accent bg-accent px-3 py-1.5 text-[11px] font-bold text-white">
+            <button type="submit" className="border border-accent bg-accent px-3 py-1.5 text-[11px] font-bold text-on-accent">
               Save
             </button>
           </div>

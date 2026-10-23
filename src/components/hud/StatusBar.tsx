@@ -13,7 +13,7 @@ interface Health {
   title: string;
 }
 
-const TONE = { ok: "var(--bull)", warn: "var(--amber)", off: "var(--neutral)" } as const;
+const TONE = { ok: "var(--bull)", warn: "var(--sev-3)", off: "var(--subtle)" } as const;
 
 // Per-source health, computed from what the payload actually contains — a
 // source shows green only when it contributed data to this refresh.
@@ -79,7 +79,7 @@ export function StatusBar({ metrics }: { metrics: Metrics }) {
             <div key={copy} className="flex gap-8 pr-8" aria-hidden={copy === 1}>
               {tape.map((n) => (
                 <a key={`${copy}-${n.url}`} href={n.url} target="_blank" rel="noreferrer" tabIndex={copy ? -1 : 0} className="hover:text-fg">
-                  <span className="text-accent-400">{n.source}</span> {n.title}
+                  <span className="text-muted">{n.source}</span> {n.title}
                 </a>
               ))}
             </div>

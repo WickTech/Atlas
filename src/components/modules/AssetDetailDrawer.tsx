@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
-import { deltaClass, formatIndianNumber, formatPercent, inr } from "@/lib/format";
+import { deltaArrow, deltaClass, formatIndianNumber, formatPercent, inr } from "@/lib/format";
 import type { Metrics } from "@/types/metrics";
 
 import { Sparkline } from "../Sparkline";
@@ -50,7 +50,7 @@ export function AssetDetailDrawer({ ticker, metrics, onClose }: { ticker: string
                   {instrument.currency === "INR" ? inr(instrument.price, { compact: false }) : formatIndianNumber(instrument.price)}
                 </p>
               </div>
-              <span className={`telemetry text-sm font-semibold ${deltaClass(instrument.changePercent)}`}>{formatPercent(instrument.changePercent)}</span>
+              <span className={`telemetry text-sm font-semibold ${deltaClass(instrument.changePercent)}`}>{deltaArrow(instrument.changePercent)} {formatPercent(instrument.changePercent)}</span>
             </div>
             {instrument.sparkline.length ? <Sparkline data={instrument.sparkline} height={56} /> : null}
           </div>

@@ -1,4 +1,5 @@
 import { countryCode, INDIA } from "@/lib/constants";
+import { severityVar } from "@/lib/theme";
 import type { CountryIndex } from "@/types/metrics";
 
 interface Props {
@@ -37,7 +38,7 @@ export function CountryRiskPanel({ countryIndex, selectedCountry, onSelectCountr
                   {c.name === INDIA && <span className="mr-1">🇮🇳</span>}
                   {c.name}
                 </span>
-                <span className="telemetry font-bold text-accent-400">{c.score}</span>
+                <span className="telemetry font-bold" style={{ color: severityVar(c.score) }}>{c.score}</span>
               </button>
             );
           })}

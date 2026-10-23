@@ -18,7 +18,7 @@ export function MiniBars({ values, label, unit, startLabel, endLabel = "now" }: 
         {values.map((v, i) => {
           const h = v ? Math.max(2, (v / max) * 30) : 0.75;
           return (
-            <rect key={i} x={i * w + w * 0.12} y={32 - h} width={w * 0.76} height={h} fill={v ? "var(--accent)" : "var(--border)"} opacity={v ? 0.85 : 1}>
+            <rect key={i} x={i * w + w * 0.12} y={32 - h} width={w * 0.76} height={h} fill={v ? "var(--muted)" : "var(--border)"} opacity={v ? 0.85 : 1}>
               <title>{`${v} ${unit}`}</title>
             </rect>
           );

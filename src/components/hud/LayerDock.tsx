@@ -8,11 +8,11 @@ import { useConsole } from "@/state/store";
 import type { LayerStatus } from "@/state/types";
 
 const STATUS_COLOR: Record<LayerStatus, string> = {
-  idle: "var(--neutral)",
-  loading: "var(--amber)",
+  idle: "var(--subtle)",
+  loading: "var(--sev-3)",
   ready: "var(--bull)",
-  stale: "var(--amber)",
-  error: "var(--accent)"
+  stale: "var(--sev-3)",
+  error: "var(--sev-5)"
 };
 
 const GROUPS: LayerGroup[] = ["Intel", "Hazards", "Movement", "Infrastructure", "Media"];
@@ -78,12 +78,12 @@ function LayerRow({ def }: { def: LayerDef }) {
           aria-checked={st.enabled}
           aria-label={`${def.label} layer`}
           onClick={() => toggleLayer(def.id)}
-          className={`relative h-4 w-7 shrink-0 border transition-colors ${st.enabled ? "border-accent bg-accent" : "border-border bg-surface-2"}`}
+          className={`relative h-4 w-7 shrink-0 border transition-colors ${st.enabled ? "border-accent bg-accent" : "border-border-strong bg-surface-3"}`}
         >
-          <span className={`absolute top-0.5 h-2.5 w-2.5 bg-white transition-[left] ${st.enabled ? "left-3.5" : "left-0.5"}`} />
+          <span className={`absolute top-0.5 h-2.5 w-2.5 transition-[left] ${st.enabled ? "left-3.5 bg-on-accent" : "left-0.5 bg-subtle"}`} />
         </button>
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: def.swatch }} aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold" title={`${def.description}\nSource: ${def.source}`}>
+        <span className={`min-w-0 flex-1 truncate text-[12.5px] font-bold ${st.enabled ? "" : "text-muted"}`} title={`${def.description}\nSource: ${def.source}`}>
           {def.label}
         </span>
         <span className="telemetry text-muted" title={statusTitle}>
@@ -107,7 +107,7 @@ function LayerRow({ def }: { def: LayerDef }) {
           <span className="telemetry w-8 text-right">{Math.round(st.opacity * 100)}%</span>
         </label>
       )}
-      {st.enabled && st.status === "error" && <p className="mt-1 pl-9 text-[10px] text-accent-400">Source unavailable — retrying</p>}
+      {st.enabled && st.status === "error" && <p className="mt-1 pl-9 text-[10px] text-sev-5">Source unavailable — retrying</p>}
     </li>
   );
 }

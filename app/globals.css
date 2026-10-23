@@ -4,61 +4,151 @@
 @custom-variant light (&:where(.light, .light *));
 
 /*
- * Modernist base (ink / red / Archivo / 0 radius) + HUD layer (monospace
- * telemetry, glass reserved for map overlays, radar pings, glow tokens).
- * Components use the semantic Tailwind colors below, never raw hex.
+ * Colour system v2: a cool slate ground where colour only means something.
+ *   blue (--accent)       = you can interact with it (tabs, toggles, sliders, links, focus)
+ *   warm ramp (--sev-1..5) = how bad it is; red is reserved for the worst cases
+ *   --cat-*               = which kind of layer a marker belongs to
+ * HUD layer: monospace telemetry, glass reserved for map overlays, radar pings.
+ * Components use the semantic Tailwind colors below, never raw hex. The map can't
+ * read CSS variables, so src/lib/theme.ts mirrors these values; keep them in sync.
+ * Severity thresholds (score 0-100): <20 calm, 20 guarded, 35 elevated, 55 high, 75+ severe.
  */
 :root,
 :root.dark {
-  --bg: #201e1d;
-  --surface: #2d2b2b;
-  --surface-2: #383534;
-  --border: color-mix(in srgb, #f8f4f4 14%, transparent);
-  --fg: #f8f4f4;
-  --muted: color-mix(in srgb, #f8f4f4 55%, transparent);
-  --accent: #d42a10;
-  --accent-400: #ff9783;
-  --accent-soft: color-mix(in srgb, #ec3013 12%, transparent);
-  --amber: #e0952a;
-  --bull: #5fd48c;
-  --neutral: color-mix(in srgb, #f8f4f4 45%, transparent);
-  --bear: #ff9783;
-  --glass: color-mix(in srgb, #201e1d 72%, transparent);
-  --glow-accent: 0 0 0 1px color-mix(in srgb, #ec3013 45%, transparent), 0 0 18px color-mix(in srgb, #ec3013 28%, transparent);
-  --map-land: #2d2b2b;
   color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #0B0F14;
+  --surface: #121821;
+  --surface-2: #1A2230;
+  --surface-3: #232C3B;
+  --border: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.26);
+  --glass: rgba(18, 24, 33, 0.88);
+
+  /* Text (solid hex values so contrast stays the same on any panel) */
+  --fg: #E7EDF4;      /* 15.1:1 on surface */
+  --muted: #9AA8B8;   /* 7.4:1 */
+  --subtle: #7D8B9C;  /* 5.1:1, for small labels */
+
+  /* Interaction only: tabs, toggles, sliders, focus, links */
+  --accent: #6E9BFF;
+  --accent-400: #9DBBFF;
+  --accent-soft: rgba(110, 155, 255, 0.16);
+  --on-accent: #0B0F14;
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --glow-accent: 0 0 0 1px rgba(110, 155, 255, 0.45), 0 0 18px rgba(110, 155, 255, 0.25);
+
+  /* Severity: risk, threat level, choropleth, alerts. Never for UI chrome. */
+  --sev-1: #5B7A99; /* calm      0–19  */
+  --sev-2: #E3D45A; /* guarded  20–34  */
+  --sev-3: #F5B83D; /* elevated 35–54  */
+  --sev-4: #FF8A3D; /* high     55–74  */
+  --sev-5: #FF5A4E; /* severe   75–100 */
+  --sev-3-soft: rgba(245, 184, 61, 0.14);
+  --sev-4-soft: rgba(255, 138, 61, 0.14);
+  --sev-5-soft: rgba(255, 90, 78, 0.10);
+  --on-sev: #0B0F14;
+  --brand-dot: var(--sev-5);
+
+  /* Markets (always pair with ▲ ▼ arrows) */
+  --bull: #3FD69B;
+  --neutral: #9AA8B8;
+  --bear: #FF8A6B;
+  --amber: var(--sev-3); /* legacy alias */
+
+  /* Map */
+  --map-ocean: #0E1520;
+  --map-land: #1B2533;
+  --map-land-line: #2A3647;
+  --map-graticule: rgba(148, 163, 184, 0.08);
+
+  /* Layer categories (cool hues, kept apart from the severity colours) */
+  --cat-news: #A78BFA;
+  --cat-quakes: #2DD4BF;
+  --cat-disasters: #F472B6;
+  --cat-aircraft: #CBD5E1;
+  --cat-outages: #38BDF8;
+  --cat-chokepoints: #A3E635;
+  --cat-media: #C4B5FD;
 }
 
 :root.light {
-  --bg: #f3f2f2;
-  --surface: #ffffff;
-  --surface-2: #eae9e9;
-  --border: color-mix(in srgb, #201e1d 40%, transparent);
-  --fg: #201e1d;
-  --muted: color-mix(in srgb, #201e1d 70%, transparent);
-  --accent: #d42a10;
-  --accent-400: #b3200a;
-  --accent-soft: color-mix(in srgb, #ec3013 12%, transparent);
-  --amber: #935709;
-  --bull: #1c6b3f;
-  --neutral: color-mix(in srgb, #201e1d 70%, transparent);
-  --bear: #b3200a;
-  --glass: color-mix(in srgb, #ffffff 78%, transparent);
-  --glow-accent: 0 0 0 1px color-mix(in srgb, #ec3013 45%, transparent), 0 0 14px color-mix(in srgb, #ec3013 18%, transparent);
-  --map-land: #eae9e9;
   color-scheme: light;
+
+  --bg: #F4F6F9;
+  --surface: #FFFFFF;
+  --surface-2: #EEF1F5;
+  --surface-3: #E3E8EF;
+  --border: rgba(15, 23, 32, 0.10);
+  --border-strong: rgba(15, 23, 32, 0.20);
+  --glass: rgba(255, 255, 255, 0.92);
+
+  --fg: #0F1720;      /* 18.1:1 */
+  --muted: #475467;   /* 7.7:1 */
+  --subtle: #5E6B7C;  /* 5.4:1 */
+
+  --accent: #2F5FD0;
+  --accent-400: #1E3F94;
+  --accent-soft: rgba(47, 95, 208, 0.12);
+  --on-accent: #FFFFFF;
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --glow-accent: 0 0 0 1px rgba(47, 95, 208, 0.45), 0 0 14px rgba(47, 95, 208, 0.18);
+
+  --sev-1: #6A859F;
+  --sev-2: #756400;
+  --sev-3: #8A5A00;
+  --sev-4: #C2410C;
+  --sev-5: #C8231A;
+  --sev-3-soft: rgba(138, 90, 0, 0.10);
+  --sev-4-soft: rgba(194, 65, 12, 0.10);
+  --sev-5-soft: rgba(200, 35, 26, 0.07);
+  --on-sev: #FFFFFF;
+  --brand-dot: var(--sev-5);
+
+  --bull: #0F7A52;
+  --neutral: #475467;
+  --bear: #B13A0A;
+  --amber: var(--sev-3);
+
+  --map-ocean: #DCE4EE;
+  --map-land: #F7F9FB;
+  --map-land-line: #C5CFDB;
+  --map-graticule: rgba(15, 23, 32, 0.06);
+
+  --cat-news: #7C5CE0;
+  --cat-quakes: #0F9488;
+  --cat-disasters: #C0307A;
+  --cat-aircraft: #64748B;
+  --cat-outages: #0369A1;
+  --cat-chokepoints: #4D7C0F;
+  --cat-media: #8B7BD8;
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border-strong: var(--border-strong);
   --color-border: var(--border);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
   --color-accent: var(--accent);
   --color-accent-400: var(--accent-400);
   --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-on-sev: var(--on-sev);
+  --color-sev-1: var(--sev-1);
+  --color-sev-2: var(--sev-2);
+  --color-sev-3: var(--sev-3);
+  --color-sev-4: var(--sev-4);
+  --color-sev-5: var(--sev-5);
+  --color-sev-3-soft: var(--sev-3-soft);
+  --color-sev-4-soft: var(--sev-4-soft);
+  --color-sev-5-soft: var(--sev-5-soft);
+  --color-brand-dot: var(--brand-dot);
   --color-amber: var(--amber);
   --color-bull: var(--bull);
   --color-neutral: var(--neutral);
@@ -89,12 +179,12 @@
 
   ::selection {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
 
   :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--focus-ring);
   }
 
   ::-webkit-scrollbar {
@@ -125,7 +215,7 @@
   }
 
   .eyebrow {
-    @apply text-[10px] font-bold tracking-[.12em] text-accent-400 uppercase;
+    @apply text-[10px] font-bold tracking-[.12em] text-muted uppercase;
   }
 
   .telemetry {
@@ -187,7 +277,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border: 1.5px solid var(--accent);
+  border: 1.5px solid var(--sev-4);
   animation: radar-ping 2.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
 }
 .radar-ping::after {

@@ -1,4 +1,4 @@
-import { formatIndianNumber, formatPercent, inr } from "@/lib/format";
+import { deltaArrow, formatIndianNumber, formatPercent, inr } from "@/lib/format";
 import type { Instrument } from "@/types/metrics";
 
 const CURRENCY_SYMBOL: Record<Instrument["currency"], string> = { INR: "₹", USD: "$", JPY: "¥" };
@@ -34,12 +34,12 @@ export function MarketsPanel({ instruments, onSelectInstrument }: { instruments:
               key={inst.symbol}
               type="button"
               onClick={() => onSelectInstrument(inst)}
-              className="grid grid-cols-[1fr_auto_60px] items-center gap-2 border-b border-border py-1.5 text-left last:border-b-0 hover:text-accent-400"
+              className="grid grid-cols-[1fr_auto_72px] items-center gap-2 border-b border-border py-1.5 text-left last:border-b-0 hover:text-accent-400"
             >
               <span className="truncate">{inst.name}</span>
               <span>{priceLabel(inst)}</span>
               <span className={`text-right ${inst.changePercent == null ? "text-muted" : inst.changePercent > 0 ? "text-bull" : "text-bear"}`}>
-                {formatPercent(inst.changePercent)}
+                {deltaArrow(inst.changePercent)} {formatPercent(inst.changePercent)}
               </span>
             </button>
           ))}

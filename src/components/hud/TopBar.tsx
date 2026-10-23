@@ -6,12 +6,12 @@ import { useEffect, useState, type RefObject } from "react";
 import type { MetricsStatus } from "@/hooks/useMetrics";
 import type { Theme } from "@/hooks/useTheme";
 import { LENSES, type Scope } from "@/lib/constants";
-import { THREAT_COLOR, type ThreatLevel } from "@/lib/threat";
+import { THREAT_COLOR, threatSoft, type ThreatLevel } from "@/lib/threat";
 import { useConsole } from "@/state/store";
 
 const STATUS: Record<MetricsStatus, { label: string; color: string }> = {
   live: { label: "LIVE", color: "var(--bull)" },
-  reconnecting: { label: "RETRYING", color: "var(--amber)" },
+  reconnecting: { label: "RETRYING", color: "var(--sev-3)" },
   connecting: { label: "LINKING", color: "var(--muted)" }
 };
 
@@ -21,7 +21,7 @@ const SCOPES: { k: Scope; label: string }[] = [
 ];
 
 const seg = (active: boolean, first: boolean) =>
-  `px-2.5 py-1 text-[11px] font-bold ${first ? "" : "border-l border-border"} ${active ? "bg-accent text-white" : "text-fg hover:bg-surface-2"}`;
+  `px-2.5 py-1 text-[11px] font-bold ${first ? "" : "border-l border-border"} ${active ? "bg-accent text-on-accent" : "text-fg hover:bg-surface-2"}`;
 
 const iconBtn = "grid h-8 w-8 place-content-center border border-border text-muted transition hover:border-accent hover:text-fg aria-pressed:text-fg";
 
@@ -57,14 +57,14 @@ export function TopBar({ status, threat, theme, onToggleTheme, searchRef }: Prop
     <header className="z-40 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-bg px-3 py-2 sm:px-4">
       <div className="flex items-baseline gap-1.5">
         <h1 className="text-lg font-extrabold tracking-tight">ATLAS</h1>
-        <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+        <span className="h-1.5 w-1.5 rounded-full bg-brand-dot" aria-hidden="true" />
       </div>
 
       {/* Fixed-width slot, shown before metrics arrive too, so the bar never re-wraps on load (CLS). */}
       {threat ? (
         <span
           className="telemetry inline-flex min-w-[17ch] items-center gap-1.5 border px-2 py-0.5 font-semibold"
-          style={{ color: THREAT_COLOR[threat.level], borderColor: THREAT_COLOR[threat.level] }}
+          style={{ color: THREAT_COLOR[threat.level], background: threatSoft(threat.level), borderColor: THREAT_COLOR[threat.level] }}
           title={`Threat posture from live signals: ${threat.highs} high-severity signal${threat.highs === 1 ? "" : "s"} (0 low · 1 guarded · 2–3 elevated · 4+ high)`}
         >
           THREAT {threat.level}

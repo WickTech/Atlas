@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deltaClass, formatIndianNumber, formatPercent, relativeTime, sentimentBucket, sentimentChipClass, sentimentColor, sevColor } from "./format";
+import { deltaArrow, deltaClass, formatIndianNumber, formatPercent, relativeTime, sentimentBucket, sentimentChipClass, sentimentColor, sevColor } from "./format";
 
 describe("number formatting", () => {
   it("shows N/A for missing values", () => {
@@ -52,9 +52,15 @@ describe("sentiment helpers", () => {
     expect(deltaClass(0)).toBe("text-bull");
     expect(deltaClass(-2)).toBe("text-bear");
   });
+  it("pairs every move with a direction glyph, so colour is never the only signal", () => {
+    expect(deltaArrow(1.2)).toBe("▲");
+    expect(deltaArrow(0)).toBe("▲");
+    expect(deltaArrow(-0.1)).toBe("▼");
+    expect(deltaArrow(null)).toBe("");
+  });
   it("has a colour for every severity", () => {
-    expect(sevColor("high")).toBe("var(--accent)");
-    expect(sevColor("medium")).toBe("var(--amber)");
-    expect(sevColor("low")).toBe("var(--neutral)");
+    expect(sevColor("high")).toBe("var(--sev-5)");
+    expect(sevColor("medium")).toBe("var(--sev-3)");
+    expect(sevColor("low")).toBe("var(--sev-1)");
   });
 });

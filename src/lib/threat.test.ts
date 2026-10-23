@@ -22,6 +22,6 @@ describe("threatLevel", () => {
   });
 
   it("has a colour for every level", () => {
-    for (const level of ["LOW", "GUARDED", "ELEVATED", "HIGH"] as const) expect(THREAT_COLOR[level]).toMatch(/^var\(--/);
+    for (const level of ["LOW", "GUARDED", "ELEVATED", "HIGH"] as const) expect(THREAT_COLOR[level]).toMatch(/^var\(--sev-[1-4]\)$/);
   });
 });

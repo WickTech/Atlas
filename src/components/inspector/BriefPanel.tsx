@@ -56,7 +56,7 @@ export function BriefPanel({ input }: { input: BriefInput | null }) {
       )}
 
       {brief.isError && (
-        <p className="text-[11px] text-accent-400" role="alert">
+        <p className="text-[11px] text-sev-5" role="alert">
           {brief.error instanceof Error ? brief.error.message : "Brief failed"}
         </p>
       )}
@@ -65,7 +65,7 @@ export function BriefPanel({ input }: { input: BriefInput | null }) {
         type="button"
         onClick={() => brief.mutate(input)}
         disabled={brief.isPending}
-        className="inline-flex items-center justify-center gap-1.5 border border-accent px-3 py-1.5 text-[11px] font-bold tracking-wider text-accent-400 uppercase transition hover:bg-accent hover:text-white disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-1.5 border border-accent px-3 py-1.5 text-[11px] font-bold tracking-wider text-accent-400 uppercase transition hover:bg-accent hover:text-on-accent disabled:opacity-60"
       >
         <Sparkles size={12} aria-hidden="true" className={brief.isPending ? "animate-pulse" : ""} />
         {brief.isPending ? "Generating…" : brief.data ? "Regenerate" : "Generate brief"}
