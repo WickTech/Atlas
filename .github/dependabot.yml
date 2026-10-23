@@ -16,6 +16,11 @@ updates:
       # reads. Lift this once deck.gl ships MapLibre 6 support (see SECURITY.md).
       - dependency-name: maplibre-gl
         update-types: [version-update:semver-major]
+      # typescript-eslint (via eslint-config-next) throws "does not support TS 7.0" at lint
+      # time, and its peer range is <6.1.0. Tracking: typescript-eslint/typescript-eslint#10940.
+      # Lift this when a typescript-eslint release supports TS >=7.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
     schedule:
