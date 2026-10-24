@@ -78,6 +78,20 @@ describe("mergeNews", () => {
     expect(out[0]?.url).toBe("https://x/2");
     expect(out[1]?.sentimentScore).toBe(0.4);
   });
+
+  it("keeps sentiment-scored articles when a burst of newer plain ones would fill the cap", () => {
+    const base = Date.parse("2026-10-24T12:00:00Z");
+    const plain = Array.from({ length: 260 }, (_, i) => article({ url: `https://rss/${i}`, timePublished: new Date(base - i * 60_000).toISOString() }));
+    const scored = Array.from({ length: 5 }, (_, i) =>
+      article({ url: `https://av/${i}`, sentimentScore: 0.2, provider: "Alpha Vantage", timePublished: new Date(base - (400 + i) * 60_000).toISOString() })
+    );
+    const out = mergeNews([...plain, ...scored]);
+    expect(out).toHaveLength(200);
+    expect(out.filter((a) => a.sentimentScore != null)).toHaveLength(5);
+    // still newest first overall
+    const times = out.map((a) => Date.parse(a.timePublished ?? ""));
+    expect([...times].sort((x, y) => y - x)).toEqual(times);
+  });
 });
 
 describe("sentiment", () => {

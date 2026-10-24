@@ -4,7 +4,7 @@
 // upstream is down.
 import type { Article, CategoryCount, EnrichedArticle, Metrics } from "@/types/metrics";
 
-import { fetchBestPerformingStock, fetchWorldNews } from "./alphaVantage";
+import { avBundle } from "./alphaVantage";
 import { ruleBasedBriefs } from "./briefs";
 import { ALL_CATEGORIES, classifyArticle } from "./categories";
 import { computeCountryIndex } from "./countryIndex";
@@ -29,7 +29,14 @@ export const mergeNews = (items: Article[]): Article[] => {
     if (!existing || (existing.sentimentScore == null && item.sentimentScore != null)) byKey.set(key, item);
   }
   const ts = (a: Article) => (a.timePublished ? Date.parse(a.timePublished) : 0);
-  return [...byKey.values()].sort((a, b) => ts(b) - ts(a)).slice(0, MAX_ARTICLES);
+  const newestFirst = (a: Article, b: Article) => ts(b) - ts(a);
+  // Articles with a real sentiment score (Alpha Vantage) are what the sentiment gauge and ticker
+  // list are computed from, and they are fetched only every few hours. A burst of newer RSS items
+  // must not push them out of the cap, so they are always kept and the plain items fill the rest.
+  const all = [...byKey.values()];
+  const scored = all.filter((a) => a.sentimentScore != null).sort(newestFirst).slice(0, MAX_ARTICLES);
+  const plain = all.filter((a) => a.sentimentScore == null).sort(newestFirst).slice(0, MAX_ARTICLES - scored.length);
+  return [...scored, ...plain].sort(newestFirst);
 };
 
 export const enrich = (n: Article): EnrichedArticle => ({
@@ -41,9 +48,8 @@ export const enrich = (n: Article): EnrichedArticle => ({
 });
 
 export const generateMetrics = async (): Promise<Metrics> => {
-  const [bestStock, avNews, rssNews, gdelt, finance] = await Promise.all([
-    fetchBestPerformingStock(),
-    fetchWorldNews(),
+  const [{ bestStock, news: avNews }, rssNews, gdelt, finance] = await Promise.all([
+    avBundle.get(),
     fetchRssNews(),
     fetchGdeltBundle(),
     fetchFinance()

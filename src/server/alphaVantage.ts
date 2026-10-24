@@ -9,11 +9,28 @@ const alphaVantageUrl = (params: Record<string, string>) => {
   return `https://www.alphavantage.co/query?${search.toString()}`;
 };
 
+/**
+ * Alpha Vantage reports rate limits, bad keys and premium-only endpoints as a normal
+ * HTTP 200 whose JSON is just `{"Information": "..."}` (or `Note` / `Error Message`).
+ * Without this check that looks like "no articles" and the cause is invisible.
+ */
+export const avMessage = (payload: unknown): string | null => {
+  const p = payload as { Information?: unknown; Note?: unknown; "Error Message"?: unknown } | null;
+  const msg = p?.Information ?? p?.Note ?? p?.["Error Message"];
+  return typeof msg === "string" && msg ? msg : null;
+};
+
 const fetchJson = async (url: string): Promise<unknown> => {
   const response = await fetchWithTimeout(url, { headers: { "User-Agent": USER_AGENT } });
   if (!response.ok) throw new Error(`Request failed (${response.status})`);
-  return response.json();
+  const payload = await response.json();
+  const message = avMessage(payload);
+  if (message) throw new Error(message.slice(0, 160));
+  return payload;
 };
+
+const logFailure = (fn: string, error: unknown) =>
+  console.warn(`[av] ${fn} failed: ${error instanceof Error ? error.message : "unknown"}`);
 
 interface AvGainer {
   ticker: string;
@@ -57,7 +74,8 @@ export const fetchBestPerformingStock = async (): Promise<BestStock> => {
       volume: asNumber(topGainer.volume),
       source: "Alpha Vantage"
     };
-  } catch {
+  } catch (error) {
+    logFailure("TOP_GAINERS_LOSERS", error);
     return { symbol: "N/A", name: "Market data unavailable", changePercent: null, price: null, volume: null, source: "Fallback" };
   }
 };
@@ -122,7 +140,80 @@ export const fetchWorldNews = async (): Promise<Article[]> => {
 
     if (!items.length) throw new Error("No news returned");
     return items;
-  } catch {
+  } catch (error) {
+    logFailure("NEWS_SENTIMENT", error);
     return [FALLBACK_ARTICLE];
   }
 };
+
+// ---------------------------------------------------------------------------
+// Quota-safe access. The free tier allows ~25 requests/day AND 1 request/second,
+// but the metrics refresh runs every minute and used to fire both calls at once.
+// So: one bundle, calls spaced out, results kept for hours, and a failed refresh
+// retried only after a pause (while the last good data keeps being served).
+// ---------------------------------------------------------------------------
+export interface AvBundle {
+  news: Article[];
+  bestStock: BestStock;
+}
+
+export interface AvBundleOptions {
+  /** How long a good bundle is reused. 2 calls per refresh, ~25/day => at most ~12 refreshes/day. */
+  ttlMs?: number;
+  /** After a refresh in which a call failed, wait this long before asking again. */
+  retryAfterMs?: number;
+  /** Gap between the two calls (the 1 req/s limit). */
+  spacingMs?: number;
+  now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
+  loadNews?: () => Promise<Article[]>;
+  loadStock?: () => Promise<BestStock>;
+}
+
+const isFallbackNews = (news: Article[]) => news.every((n) => n.provider === "Fallback");
+const isFallbackStock = (s: BestStock) => s.source === "Fallback";
+const FALLBACK_STOCK: BestStock = { symbol: "N/A", name: "Market data unavailable", changePercent: null, price: null, volume: null, source: "Fallback" };
+
+export const createAvBundle = ({
+  ttlMs = 3 * 60 * 60_000,
+  retryAfterMs = 20 * 60_000,
+  spacingMs = 1200,
+  now = Date.now,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  loadNews = fetchWorldNews,
+  loadStock = fetchBestPerformingStock
+}: AvBundleOptions = {}) => {
+  // `at` is when the bundle stops being fresh minus ttl; a bundle with a failed half is
+  // stamped so that it expires after only `retryAfterMs`, which is the retry pause.
+  let current: { bundle: AvBundle; at: number } = { bundle: { news: [FALLBACK_ARTICLE], bestStock: FALLBACK_STOCK }, at: -Infinity };
+  let inflight: Promise<AvBundle> | null = null;
+
+  const refresh = async (): Promise<AvBundle> => {
+    // News first (it carries the sentiment), then the gap, then the top gainer.
+    const news = await loadNews();
+    await sleep(spacingMs);
+    const bestStock = await loadStock();
+    const newsFailed = isFallbackNews(news);
+    const stockFailed = isFallbackStock(bestStock);
+    // Keep whichever half worked, and the last good data for whichever half did not.
+    const bundle: AvBundle = {
+      news: newsFailed ? current.bundle.news : news,
+      bestStock: stockFailed ? current.bundle.bestStock : bestStock
+    };
+    current = { bundle, at: newsFailed || stockFailed ? now() - ttlMs + retryAfterMs : now() };
+    return bundle;
+  };
+
+  return {
+    get: async (): Promise<AvBundle> => {
+      if (now() - current.at < ttlMs) return current.bundle;
+      inflight ??= refresh().finally(() => {
+        inflight = null;
+      });
+      return inflight;
+    }
+  };
+};
+
+/** Shared by every metrics refresh on this instance. */
+export const avBundle = createAvBundle();
