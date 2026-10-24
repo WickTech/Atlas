@@ -31,7 +31,7 @@ Real-time global situational-awareness console — country risk, cross-stream si
 | Publisher RSS (The Hindu, NDTV, TOI, Mint, ET, BBC, Al Jazeera, DW, France 24, Guardian, NPR, UN News) | News backbone, subject-country tagging | none | Headlines + links only, per publisher terms |
 | GDELT DOC 2.0 | Supplementary world news + tone (throttled to 1 req / 5 s per IP, so best-effort) | none | Open use with citation |
 | Yahoo Finance chart API | India + global markets | none | Unofficial endpoint, Yahoo terms |
-| Alpha Vantage | Per-article sentiment, top gainer | optional `ALPHA_VANTAGE_API_KEY` | Free tier terms |
+| Alpha Vantage | Per-article sentiment (Market Mood, Top Driver), top gainer. Free tier is 25 requests/day and 1/second, so the two calls are spaced apart and cached for 3 h | optional `ALPHA_VANTAGE_API_KEY` | Free tier terms |
 | Groq / OpenRouter (`openrouter/free`) | AI briefs, deterministic fallback otherwise | optional `GROQ_API_KEY` / `OPENROUTER_API_KEY` | Provider terms |
 | OpenFreeMap (OSM) · CARTO fallback | Vector basemaps | none | ODbL (OSM data), attribution shown on map |
 | USGS real-time feed | Earthquakes M2.5+ (browser-direct, CORS-open) | none | U.S. public domain |
