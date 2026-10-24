@@ -52,7 +52,7 @@ export const LAYERS: LayerDef[] = [
     group: "Hazards",
     hotkey: "h",
     swatch: "var(--cat-disasters)",
-    description: "Open natural events (storms, wildfires, volcanoes, floods) plus current GDACS impact alerts. Sea-ice tracking and minor (green) GDACS wildfires excluded.",
+    description: "Open natural events (storms, wildfires, volcanoes, floods) plus current GDACS impact alerts. Marker style shows the kind: solid = fire / heat, ring = water / storm, soft = ground / other. Sea-ice tracking and minor (green) GDACS wildfires excluded.",
     source: "NASA EONET · GDACS"
   },
   {

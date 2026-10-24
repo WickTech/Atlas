@@ -11,7 +11,9 @@ Real-time global situational-awareness console — country risk, cross-stream si
 
 **Live:** https://atlas-eight-fawn.vercel.app
 
-![Atlas console: layer dock, globe with risk choropleth, quakes, disasters and chokepoints, intel panel with the country instability index](docs/screenshots/console.png)
+| Dark | Light |
+| --- | --- |
+| ![Atlas console, dark theme: layer dock, globe with the severity-ramp risk choropleth, quakes, disasters and chokepoints, intel panel with the country instability index](docs/screenshots/console.png) | ![Atlas console, light theme: the same view](docs/screenshots/console-light.png) |
 
 ## Stack
 
@@ -99,7 +101,7 @@ Resilience: every upstream self-falls-back; the route coalesces concurrent cold 
 ## Console
 
 - Full-bleed globe with a floating **layer dock** (live entity counts, status, opacity), a docked **intel panel** (Intel · Markets · News · Brief), and a **status rail** showing which sources contributed to the current refresh, API latency and a headline tape.
-- **Nine layers** in five groups: regional risk, live news, earthquakes, disasters, aircraft, internet outages, chokepoints & ports, traffic cameras, live TV. Each fetches only while it's on, polls at a cadence matched to its source, pauses in background tabs, and reports status/count/errors to the dock. Small slow-moving layers persist to localStorage and repaint instantly on reload.
+- **Nine layers** in five groups: regional risk, live news, earthquakes, disasters, aircraft, internet outages, chokepoints & ports, traffic cameras, live TV. Disaster markers share one hue and show the kind of event by style (solid = fire / heat, ring = water / storm, soft = ground / other), and the layer dock warns when one source behind a layer (say GDACS) is down. The Intel tab lists the newest CISA Known Exploited Vulnerabilities while the internet-outage layer is on. Each fetches only while it's on, polls at a cadence matched to its source, pauses in background tabs, and reports status/count/errors to the dock. Small slow-moving layers persist to localStorage and repaint instantly on reload.
 - Aircraft are fetched for the visible box only (zoom ≥ 4, 2°-quantized so pans share cache keys) and drawn radar-style: a dot at barometric altitude plus a heading tail scaled to ground speed.
 - Click a camera or TV marker for a floating viewer (map stays interactive). Click anything else, pick a country, or press `G` and click any point to open the **inspector**. It shows facts and the source link, the country found by point-in-polygon on the loaded geometry, events within 500 km by great-circle distance, a coverage/event timeline, and the latest matching headlines.
 - **AI situational brief** on demand. It's generated only from the facts and headlines the inspector shows: the prompt forbids outside knowledge and treats headline text as data. It uses Atlas's shared free-tier keys through `/api/brief` (input validation, LRU cache, per-IP rate limit, rule-based fallback). With **bring your own key**, the browser calls Groq or OpenRouter directly (both allow CORS), so the key stays in localStorage and never reaches Atlas's server.

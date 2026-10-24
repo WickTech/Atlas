@@ -5,6 +5,8 @@ interface Kpi {
   label: string;
   value: string;
   accent?: string;
+  /** Small muted line under the value. Plain text, so meaning never depends on colour. */
+  note?: string;
 }
 
 /** Top KPI strip: sentiment-first summary of the live news/signals feed. */
@@ -17,7 +19,7 @@ export function KpiStrip({ metrics }: { metrics: Metrics }) {
     { label: "Market Mood", value: s.overall.label, accent: sentimentColor(s.overall.bucket) },
     { label: "News Tracked", value: compactNumber(metrics.news.length) },
     { label: "Top Driver", value: topDriver ? topDriver.ticker : "—", accent: topDriver ? sentimentColor(topDriver.label) : undefined },
-    { label: "Active Signals", value: compactNumber(metrics.signals.length), accent: highSignals ? "var(--sev-5-text)" : undefined }
+    { label: "Active Signals", value: compactNumber(metrics.signals.length), note: highSignals ? `${highSignals} high severity` : undefined }
   ];
 
   return (
@@ -28,6 +30,7 @@ export function KpiStrip({ metrics }: { metrics: Metrics }) {
           <p className="text-xl font-bold" style={c.accent ? { color: c.accent } : undefined}>
             {c.value}
           </p>
+          {c.note && <p className="text-[11px] text-muted">{c.note}</p>}
         </article>
       ))}
     </section>
