@@ -15,6 +15,8 @@ export interface LayerState {
   count: number;
   updatedAt?: string;
   error?: string;
+  /** Set while the layer works but a source behind it is down (see src/layers/health.ts). */
+  warning?: string;
 }
 
 export interface Filters {

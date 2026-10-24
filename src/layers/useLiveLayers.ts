@@ -5,10 +5,11 @@ import { useEffect, useMemo } from "react";
 
 import { fetchJson } from "@/lib/fetchJson";
 import { isoToCountry, quantizeBBox } from "@/lib/geo";
-import type { CyberPayload, FlightTuple, LivePayload } from "@/server/live";
+import type { CyberPayload, FlightTuple, LivePayload, SourceResult } from "@/server/live";
 import { useConsole } from "@/state/store";
 import type { LayerId, LayerStatus } from "@/state/types";
 
+import { sourceHealth } from "./health";
 import { parseUsgs } from "./parse";
 import { broadcastItems, parseStrategic, type StrategicFile } from "./static";
 import type { GeoItem } from "./types";
@@ -67,6 +68,13 @@ const statusOf = (q: UseQueryResult<unknown>, enabled: boolean): LayerStatus => 
   if (q.isError) return q.data ? "stale" : "error";
   if (q.data) return q.isRefetchError ? "stale" : "ready";
   return "loading";
+};
+
+/** Folds per-source health into the layer's status: a dead source is a warning, all dead is an error. */
+const withHealth = (status: LayerStatus, payload: { sources?: SourceResult[] } | undefined, queryError?: string) => {
+  const h = sourceHealth(payload?.sources);
+  if ((status === "ready" || status === "stale") && h.state === "down") return { status: "error" as const, error: queryError ?? h.message, warning: undefined };
+  return { status, error: queryError, warning: status === "ready" || status === "stale" ? h.message : undefined };
 };
 
 export interface LiveData {
@@ -164,15 +172,14 @@ export function useLiveLayers(anchors: Map<string, [number, number]> | null): Li
   useEffect(() => {
     const err = (q: UseQueryResult<unknown>) => (q.error instanceof Error ? q.error.message : undefined);
     setLayer("quakes", { status: statusOf(quakes, on("quakes")), count: data.quakes.length, error: err(quakes) });
-    setLayer("hazards", { status: statusOf(hazards, on("hazards")), count: data.hazards.length, error: err(hazards) });
-    setLayer("cyber", { status: statusOf(cyber, on("cyber")), count: data.cyber.length, error: err(cyber) });
-    setLayer("cctv", { status: statusOf(cctv, on("cctv")), count: data.cctv.length, error: err(cctv) });
+    setLayer("hazards", { ...withHealth(statusOf(hazards, on("hazards")), hazards.data, err(hazards)), count: data.hazards.length });
+    setLayer("cyber", { ...withHealth(statusOf(cyber, on("cyber")), cyber.data, err(cyber)), count: data.cyber.length });
+    setLayer("cctv", { ...withHealth(statusOf(cctv, on("cctv")), cctv.data, err(cctv)), count: data.cctv.length });
     setLayer("strategic", { status: statusOf(strategic, on("strategic")), count: data.strategic.length, error: err(strategic) });
     setLayer("broadcasts", { status: on("broadcasts") ? "ready" : "idle", count: data.broadcasts.length });
     setLayer("flights", {
-      status: !on("flights") ? "idle" : !zoomOk ? "idle" : statusOf(flights, true),
-      count: data.flights.length,
-      error: err(flights)
+      ...(!on("flights") || !zoomOk ? { status: "idle" as const, error: err(flights), warning: undefined } : withHealth(statusOf(flights, true), flights.data, err(flights))),
+      count: data.flights.length
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- query objects are recreated each render; key on their state
   }, [data, quakes.status, hazards.status, cyber.status, cctv.status, strategic.status, flights.status, flights.isFetching, layers, zoomOk]);
