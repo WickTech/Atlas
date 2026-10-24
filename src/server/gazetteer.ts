@@ -134,8 +134,6 @@ const PLAIN = [
   "Tanzania", "Timor-Leste", "Togo", "Trinidad and Tobago", "Turkmenistan", "Uruguay", "Uzbekistan", "Vanuatu", "eSwatini"
 ];
 
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 const aliasToCountry = new Map<string, string>();
 for (const name of PLAIN) aliasToCountry.set(name.toLowerCase(), name);
 for (const [name, aliases] of Object.entries(ALIASES)) {
@@ -143,25 +141,62 @@ for (const [name, aliases] of Object.entries(ALIASES)) {
   for (const a of aliases) aliasToCountry.set(a, name);
 }
 
-// Longest alias first so "papua new guinea" wins over "guinea" and
-// "south sudan" over "sudan" at the same position.
-// Built only from the constant, escaped alias tables above (literal alternation, no user input).
-// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
-const ALIAS_RE = new RegExp(
-  `(?<![\\w.])(${[...aliasToCountry.keys()].sort((a, b) => b.length - a.length).map(escape).join("|")})(?![\\w])`,
-  "gi"
-);
+// Aliases grouped by first character, longest first, so "papua new guinea" wins over
+// "guinea" and "south sudan" over "sudan" at the same position, and each position only
+// checks the handful of aliases that could start there.
+const aliasesByFirstChar = new Map<string, string[]>();
+for (const alias of [...aliasToCountry.keys()].sort((a, b) => b.length - a.length)) {
+  const first = alias[0] as string;
+  const bucket = aliasesByFirstChar.get(first);
+  if (bucket) bucket.push(alias);
+  else aliasesByFirstChar.set(first, [alias]);
+}
+
+const WORD = /\w/;
+const WORD_OR_DOT = /[\w.]/;
+
+/** Lower-cases without ever changing the string's length, so indices still line up with the original. */
+const foldCase = (text: string) => Array.from(text, (ch) => (ch.toLowerCase().length === ch.length ? ch.toLowerCase() : ch)).join("");
+
+/**
+ * Whole-word alias hits, left to right and non-overlapping. An alias must not be preceded
+ * by a letter, digit, underscore or dot, nor followed by a letter, digit or underscore (so
+ * "us" doesn't match inside "bus" or "Russia", and "u.s." can still end a sentence).
+ * Equivalent to the case-insensitive alternation regex this replaces, but a plain scan: no
+ * RegExp is built from data, so no ReDoS surface and nothing for Semgrep to flag.
+ */
+export const findAliases = (text: string): { alias: string; raw: string }[] => {
+  const lower = foldCase(text);
+  const hits: { alias: string; raw: string }[] = [];
+  let i = 0;
+  while (i < lower.length) {
+    const bucket = aliasesByFirstChar.get(lower[i] as string);
+    let hit: string | undefined;
+    if (bucket && (i === 0 || !WORD_OR_DOT.test(lower[i - 1] as string))) {
+      hit = bucket.find((alias) => {
+        if (!lower.startsWith(alias, i)) return false;
+        const next = lower[i + alias.length];
+        return next === undefined || !WORD.test(next);
+      });
+    }
+    if (hit) {
+      hits.push({ alias: hit, raw: text.slice(i, i + hit.length) });
+      i += hit.length;
+    } else {
+      i++;
+    }
+  }
+  return hits;
+};
 
 // Short all-caps tokens are only trusted in their canonical casing ("US", "UK"),
 // so the pronoun "us" in "join us" doesn't tag America.
 const CASE_SENSITIVE = new Set(["us", "uk", "uae", "drc", "dprk", "idf", "usa"]);
 
 const scan = (text: string, weight: number, scores: Map<string, number>) => {
-  for (const m of text.matchAll(ALIAS_RE)) {
-    const raw = m[1] ?? "";
-    const key = raw.toLowerCase();
-    if (CASE_SENSITIVE.has(key) && raw !== raw.toUpperCase()) continue;
-    const country = aliasToCountry.get(key);
+  for (const { alias, raw } of findAliases(text)) {
+    if (CASE_SENSITIVE.has(alias) && raw !== raw.toUpperCase()) continue;
+    const country = aliasToCountry.get(alias);
     if (country) scores.set(country, (scores.get(country) ?? 0) + weight);
   }
 };
