@@ -49,6 +49,13 @@
   --sev-4-soft: rgba(255, 138, 61, 0.14);
   --sev-5-soft: rgba(255, 90, 78, 0.10);
   --on-sev: #0B0F14;
+  /* Text-safe severity: the --sev-N fills are for dots, map, pills and tints; coloured TEXT on
+     surfaces or tinted chips uses these so every step stays >= 4.5:1 (checked by e2e/a11y). */
+  --sev-1-text: #8BA1B7;
+  --sev-2-text: #E3D45A;
+  --sev-3-text: #F5B83D;
+  --sev-4-text: #FF8A3D;
+  --sev-5-text: #FF6B61;
   --brand-dot: var(--sev-5);
 
   /* Markets (always pair with ▲ ▼ arrows) */
@@ -104,6 +111,11 @@
   --sev-4-soft: rgba(194, 65, 12, 0.10);
   --sev-5-soft: rgba(200, 35, 26, 0.07);
   --on-sev: #FFFFFF;
+  --sev-1-text: #4D6073;
+  --sev-2-text: #6D5D00;
+  --sev-3-text: #815400;
+  --sev-4-text: #A5370A;
+  --sev-5-text: #B31F17;
   --brand-dot: var(--sev-5);
 
   --bull: #0F7A52;
@@ -145,6 +157,11 @@
   --color-sev-3: var(--sev-3);
   --color-sev-4: var(--sev-4);
   --color-sev-5: var(--sev-5);
+  --color-sev-1-text: var(--sev-1-text);
+  --color-sev-2-text: var(--sev-2-text);
+  --color-sev-3-text: var(--sev-3-text);
+  --color-sev-4-text: var(--sev-4-text);
+  --color-sev-5-text: var(--sev-5-text);
   --color-sev-3-soft: var(--sev-3-soft);
   --color-sev-4-soft: var(--sev-4-soft);
   --color-sev-5-soft: var(--sev-5-soft);

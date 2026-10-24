@@ -87,7 +87,7 @@ export function AiSettings({ onClose }: { onClose: () => void }) {
           server. Anyone with access to this browser profile can read it; remove it on shared machines.
         </p>
         {note && (
-          <p className="text-[11px] text-sev-5" role="alert">
+          <p className="text-[11px] text-sev-5-text" role="alert">
             {note}
           </p>
         )}

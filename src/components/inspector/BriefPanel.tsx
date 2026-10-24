@@ -56,7 +56,7 @@ export function BriefPanel({ input }: { input: BriefInput | null }) {
       )}
 
       {brief.isError && (
-        <p className="text-[11px] text-sev-5" role="alert">
+        <p className="text-[11px] text-sev-5-text" role="alert">
           {brief.error instanceof Error ? brief.error.message : "Brief failed"}
         </p>
       )}
