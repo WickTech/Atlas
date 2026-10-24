@@ -67,7 +67,7 @@ function LayerRow({ def }: { def: LayerDef }) {
   const setLayer = useConsole((s) => s.setLayer);
   // An enabled layer that's idle is waiting on a precondition (e.g. zoom) — say which.
   const showHint = st.enabled && st.status === "idle" && def.hint;
-  const statusTitle = st.error ? `error: ${st.error}` : `status: ${st.status}`;
+  const statusTitle = st.error ? `error: ${st.error}` : st.warning ? `degraded: ${st.warning}` : `status: ${st.status}`;
 
   return (
     <li className="border-b border-border px-3 py-2 last:border-b-0">
@@ -87,7 +87,7 @@ function LayerRow({ def }: { def: LayerDef }) {
           {def.label}
         </span>
         <span className="telemetry text-muted" title={statusTitle}>
-          <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${st.status === "loading" ? "animate-pulse" : ""}`} style={{ background: STATUS_COLOR[st.status] }} />
+          <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${st.status === "loading" ? "animate-pulse" : ""}`} style={{ background: st.warning && st.status === "ready" ? "var(--sev-3)" : STATUS_COLOR[st.status] }} />
           {showHint ? def.hint : st.enabled ? compactNumber(st.count) : "off"}
         </span>
         <kbd className="telemetry border border-border px-1 text-[10px] text-muted uppercase">{def.hotkey}</kbd>
@@ -107,7 +107,8 @@ function LayerRow({ def }: { def: LayerDef }) {
           <span className="telemetry w-8 text-right">{Math.round(st.opacity * 100)}%</span>
         </label>
       )}
-      {st.enabled && st.status === "error" && <p className="mt-1 pl-9 text-[10px] text-sev-5-text">Source unavailable — retrying</p>}
+      {st.enabled && st.status === "error" && <p className="mt-1 pl-9 text-[10px] text-sev-5-text">{st.error ?? "Source unavailable"} — retrying</p>}
+      {st.enabled && st.status !== "error" && st.warning && <p className="mt-1 pl-9 text-[10px] text-sev-3-text">{st.warning}</p>}
     </li>
   );
 }

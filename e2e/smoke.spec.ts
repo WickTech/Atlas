@@ -95,3 +95,39 @@ test.describe("security headers", () => {
     expect(violations).toEqual([]);
   });
 });
+
+test.describe("source health in the layer dock", () => {
+  const hazards = (sources: { source: string; ok: boolean; count: number; error?: string }[]) => ({
+    items: [
+      { id: "eonet:1", kind: "hazard", coord: [10, 10], title: "Test wildfire", ts: null, severity: "medium", source: "NASA EONET", facts: ["x"], category: "wildfires" }
+    ],
+    sources,
+    fetchedAt: new Date().toISOString()
+  });
+
+  test("a failed upstream behind a working layer shows as a warning, not a silent 'ready'", async ({ page }) => {
+    await page.route("**/api/hazards", (route) =>
+      route.fulfill({ json: hazards([{ source: "NASA EONET", ok: true, count: 1 }, { source: "GDACS", ok: false, count: 0, error: "HTTP 503" }]) })
+    );
+    await page.goto("/?l=hazards");
+    await expect(page.getByText("GDACS unavailable — showing NASA EONET only")).toBeVisible({ timeout: 30_000 });
+  });
+
+  test("when every upstream behind a layer failed, the layer shows an error", async ({ page }) => {
+    await page.route("**/api/hazards", (route) =>
+      route.fulfill({ json: { ...hazards([{ source: "NASA EONET", ok: false, count: 0 }, { source: "GDACS", ok: false, count: 0 }]), items: [] } })
+    );
+    await page.goto("/?l=hazards");
+    await expect(page.getByText("NASA EONET and GDACS unavailable — retrying")).toBeVisible({ timeout: 30_000 });
+  });
+
+  test("no warning when all sources answered", async ({ page }) => {
+    await page.route("**/api/hazards", (route) =>
+      route.fulfill({ json: hazards([{ source: "NASA EONET", ok: true, count: 1 }, { source: "GDACS", ok: true, count: 0 }]) })
+    );
+    await page.goto("/?l=hazards");
+    await expect(page.getByRole("switch", { name: "Disasters layer" })).toHaveAttribute("aria-checked", "true");
+    await page.waitForTimeout(3000);
+    await expect(page.getByText(/unavailable/)).toHaveCount(0);
+  });
+});
