@@ -31,7 +31,7 @@ export const ruleBasedBriefs = (news: EnrichedArticle[]): Briefs => {
   };
 };
 
-export const generateBriefs = async (news: EnrichedArticle[] = []): Promise<Briefs> => {
+export const generateBriefs = async (news: EnrichedArticle[] = [], budgetMs?: number): Promise<Briefs> => {
   const india = news.filter((n) => n.indiaRelated);
   const global = news.filter((n) => !n.indiaRelated);
 
@@ -50,7 +50,7 @@ export const generateBriefs = async (news: EnrichedArticle[] = []): Promise<Brie
     'Respond with ONLY JSON: {"india":"2-3 sentence brief","global":"2-3 sentence brief","categories":{"<categoryLabel>":"one-line takeaway"}}'
   ].join("\n");
 
-  const result = await complete({ system: "You output only valid JSON.", prompt });
+  const result = await complete({ system: "You output only valid JSON.", prompt, budgetMs });
   const parsed = parseJsonLoose<{ india?: string; global?: string; categories?: Record<string, string> }>(result?.text);
   if (!result || !parsed) return ruleBasedBriefs(news);
 

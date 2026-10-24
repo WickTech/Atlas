@@ -7,6 +7,30 @@ test.describe("console smoke", () => {
     expect(await res.json()).toEqual({ status: "ok" });
   });
 
+  test("metrics and the AI briefing are separate, and metrics never waits on the model", async ({ request }) => {
+    const started = Date.now();
+    const metrics = await request.get("/api/metrics");
+    expect(metrics.ok()).toBe(true);
+    // Cold fan-out is bounded by GDELT's short deadline now, not by the LLM.
+    expect(Date.now() - started).toBeLessThan(12_000);
+    const body = await metrics.json();
+    expect(body.briefs.source).toBe("rule-based");
+
+    const briefing = await request.get("/api/briefing");
+    expect(briefing.ok()).toBe(true);
+    const briefs = await briefing.json();
+    expect(["groq", "openrouter", "rule-based"]).toContain(briefs.source);
+    expect(typeof briefs.india).toBe("string");
+  });
+
+  test("the Brief tab shows a briefing", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("tablist", { name: "Intel panel sections" })).toBeVisible();
+    await page.getByRole("tab", { name: /brief/i }).click();
+    await expect(page.getByRole("heading", { name: "Today's briefing" })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/India brief/)).toBeVisible();
+  });
+
   test("shell renders without uncaught errors", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));

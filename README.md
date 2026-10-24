@@ -75,6 +75,8 @@ flowchart LR
 app/
   page.tsx               static shell → <Console/> (client)
   api/metrics/route.ts   aggregated payload; CDN cached (s-maxage=60, swr=300)
+  api/briefing/route.ts  AI "Today's briefing", served apart from /api/metrics so a slow free model never delays it;
+                         30 min per-headline-set cache, rule-based digest until it arrives
   api/brief/route.ts     AI brief on shared free-tier keys: validated input, 15 min LRU, 8 req/min/IP
   api/{hazards,cyber,cctv,flights}/route.ts
                          live-layer proxies: per-source timeouts, in-instance coalescing,

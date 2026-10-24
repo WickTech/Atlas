@@ -31,12 +31,22 @@ export const isIndiaRelated = ({
 
 const gdeltUrl = (params: Record<string, string>) => `${GDELT_BASE}?${new URLSearchParams(params).toString()}`;
 
+/**
+ * GDELT is supplementary: it allows 1 request / 5 s per IP, so serverless IPs are
+ * throttled or left hanging, and from Vercel it usually contributes nothing. It must
+ * not hold up the whole metrics refresh, so it gets a short deadline (the default 7 s
+ * made every cold /api/metrics call wait the full 7 s for an answer that never came).
+ */
+export const GDELT_TIMEOUT_MS = 2500;
+
 // GDELT sometimes returns HTML/plain-text errors with a 200 status, so read as
 // text first and only parse when it looks like JSON.
-export const fetchGdeltJson = async (url: string): Promise<unknown> => {
-  const response = await fetchWithTimeout(url, {
-    headers: { Accept: "application/json", "User-Agent": USER_AGENT }
-  });
+export const fetchGdeltJson = async (url: string, timeoutMs = GDELT_TIMEOUT_MS): Promise<unknown> => {
+  const response = await fetchWithTimeout(
+    url,
+    { headers: { Accept: "application/json", "User-Agent": USER_AGENT } },
+    timeoutMs
+  );
   if (!response.ok) throw new Error(`Request failed (${response.status})`);
   const trimmed = (await response.text()).trim();
   if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) throw new Error("Non-JSON GDELT response");
