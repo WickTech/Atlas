@@ -23,6 +23,20 @@ test.describe("console smoke", () => {
     expect(typeof briefs.india).toBe("string");
   });
 
+  test("the mood tile says how its number was produced", async ({ page }) => {
+    await page.route("**/api/metrics", async (route) => {
+      const res = await route.fetch();
+      const body = await res.json();
+      body.sentiment = { ...body.sentiment, method: "headline-wording", overall: { score: -0.19, label: "Bearish", bucket: "bearish" } };
+      await route.fulfill({ response: res, json: body });
+    });
+    await page.goto("/");
+    await expect(page.getByText("News Mood").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("from headline wording").first()).toBeVisible();
+    await page.getByRole("tab", { name: /markets/i }).click();
+    await expect(page.getByText(/Estimated from the wording of today's headlines/)).toBeVisible();
+  });
+
   test("the Brief tab shows a briefing", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("tablist", { name: "Intel panel sections" })).toBeVisible();

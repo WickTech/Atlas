@@ -20,12 +20,30 @@ export const avMessage = (payload: unknown): string | null => {
   return typeof msg === "string" && msg ? msg : null;
 };
 
-const fetchJson = async (url: string): Promise<unknown> => {
+/**
+ * "This is a premium endpoint": the key is valid but the plan can't use that function. As of
+ * 2026 NEWS_SENTIMENT is premium-only, so on a free key asking again can never succeed.
+ */
+export const isPremiumMessage = (message: string) => /premium (endpoint|plan)/i.test(message);
+
+class AvPremiumError extends Error {}
+
+const PREMIUM_RECHECK_MS = 24 * 60 * 60_000;
+/** function name -> time until which we don't ask again because the plan lacks it. */
+const premiumUntil = new Map<string, number>();
+
+const fetchJson = async (url: string, fn?: string): Promise<unknown> => {
   const response = await fetchWithTimeout(url, { headers: { "User-Agent": USER_AGENT } });
   if (!response.ok) throw new Error(`Request failed (${response.status})`);
   const payload = await response.json();
   const message = avMessage(payload);
-  if (message) throw new Error(message.slice(0, 160));
+  if (message) {
+    if (fn && isPremiumMessage(message)) {
+      premiumUntil.set(fn, Date.now() + PREMIUM_RECHECK_MS);
+      throw new AvPremiumError(message.slice(0, 160));
+    }
+    throw new Error(message.slice(0, 160));
+  }
   return payload;
 };
 
@@ -60,7 +78,7 @@ interface AvFeedItem {
 
 export const fetchBestPerformingStock = async (): Promise<BestStock> => {
   try {
-    const payload = (await fetchJson(alphaVantageUrl({ function: "TOP_GAINERS_LOSERS" }))) as {
+    const payload = (await fetchJson(alphaVantageUrl({ function: "TOP_GAINERS_LOSERS" }), "TOP_GAINERS_LOSERS")) as {
       top_gainers?: AvGainer[];
     };
     const topGainer = payload?.top_gainers?.[0];
@@ -103,7 +121,9 @@ export const FALLBACK_ARTICLE: Article = {
   provider: "Fallback"
 };
 
+/** Empty array (not the fallback article) means "this plan has no news sentiment": nothing to retry. */
 export const fetchWorldNews = async (): Promise<Article[]> => {
+  if ((premiumUntil.get("NEWS_SENTIMENT") ?? 0) > Date.now()) return [];
   try {
     const payload = (await fetchJson(
       alphaVantageUrl({
@@ -111,7 +131,8 @@ export const fetchWorldNews = async (): Promise<Article[]> => {
         topics: "financial_markets,economy_macro,technology,finance",
         sort: "LATEST",
         limit: "50"
-      })
+      }),
+      "NEWS_SENTIMENT"
     )) as { feed?: AvFeedItem[] };
 
     const items: Article[] = Array.isArray(payload?.feed)
@@ -141,6 +162,10 @@ export const fetchWorldNews = async (): Promise<Article[]> => {
     if (!items.length) throw new Error("No news returned");
     return items;
   } catch (error) {
+    if (error instanceof AvPremiumError) {
+      console.warn("[av] NEWS_SENTIMENT is premium-only on this key's plan; skipping it for 24 h. Sentiment now comes from headline wording.");
+      return [];
+    }
     logFailure("NEWS_SENTIMENT", error);
     return [FALLBACK_ARTICLE];
   }
@@ -170,7 +195,8 @@ export interface AvBundleOptions {
   loadStock?: () => Promise<BestStock>;
 }
 
-const isFallbackNews = (news: Article[]) => news.every((n) => n.provider === "Fallback");
+// [] = "not available on this plan" (a settled answer); only the fallback article means a failed call.
+const isFallbackNews = (news: Article[]) => news.length > 0 && news.every((n) => n.provider === "Fallback");
 const isFallbackStock = (s: BestStock) => s.source === "Fallback";
 const FALLBACK_STOCK: BestStock = { symbol: "N/A", name: "Market data unavailable", changePercent: null, price: null, volume: null, source: "Fallback" };
 

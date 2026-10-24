@@ -1,7 +1,7 @@
 // Sentiment overview block (gauge, distribution, time-trend, top tickers)
 // derived from the merged news list. Alpha Vantage thresholds: >=0.15 bullish,
 // <=-0.15 bearish.
-import type { Article, Sentiment, SentimentBucket, SentimentLabel, WorldTone } from "@/types/metrics";
+import type { Article, Sentiment, SentimentBucket, SentimentLabel, SentimentMethod, WorldTone } from "@/types/metrics";
 
 export const bucketForScore = (score: number | null | undefined): SentimentBucket => {
   if (score == null) return "neutral";
@@ -23,10 +23,14 @@ export const computeSentiment = (news: Article[], worldTone: WorldTone | null): 
 
   // Gauge: average per-article score, else normalized GDELT tone (-10..10 -> -1..1).
   let overallScore: number | null = null;
+  let method: SentimentMethod = "none";
   if (scored.length) {
     overallScore = scored.reduce((sum, n) => sum + n.sentimentScore, 0) / scored.length;
+    // Provider scores win the label when any exist; otherwise it is wording-based.
+    method = scored.some((n) => n.sentimentMethod !== "headline-wording") ? "alpha-vantage" : "headline-wording";
   } else if (worldTone?.average != null) {
     overallScore = Math.max(-1, Math.min(1, worldTone.average / 10));
+    method = "gdelt-tone";
   }
   overallScore = overallScore == null ? null : Number(overallScore.toFixed(3));
 
@@ -70,6 +74,7 @@ export const computeSentiment = (news: Article[], worldTone: WorldTone | null): 
 
   return {
     overall: { score: overallScore, label: labelForScore(overallScore), bucket: bucketForScore(overallScore) },
+    method,
     distribution,
     trend,
     topTickers,

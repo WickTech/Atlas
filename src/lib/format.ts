@@ -78,6 +78,9 @@ export const sentimentColor = (v: string | number | null | undefined) => COLOR[s
 /** Direction glyph so a price move is never signalled by colour alone. Zero counts as up, like deltaClass. */
 export const deltaArrow = (value: Num) => (value == null ? "" : value >= 0 ? "▲" : "▼");
 
+/** Wording-based scores describe the news, not the market, so the tile says so. */
+export const moodLabel = (method: "alpha-vantage" | "headline-wording" | "gdelt-tone" | "none") => (method === "headline-wording" ? "News Mood" : "Market Mood");
+
 export const deltaClass = (value: Num) => (value == null ? "text-muted" : value >= 0 ? "text-bull" : "text-bear");
 
 const SEV: Record<Severity, string> = { high: "var(--sev-5)", medium: "var(--sev-3)", low: "var(--sev-1)" };

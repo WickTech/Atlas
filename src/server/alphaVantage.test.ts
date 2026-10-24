@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Article, BestStock } from "@/types/metrics";
 
-import { avMessage, createAvBundle, FALLBACK_ARTICLE } from "./alphaVantage";
+import { avMessage, createAvBundle, FALLBACK_ARTICLE, fetchWorldNews, isPremiumMessage } from "./alphaVantage";
 
 const article = (title: string): Article => ({ ...FALLBACK_ARTICLE, title, provider: "Alpha Vantage", source: "x" });
 const stock = (symbol: string): BestStock => ({ symbol, name: symbol, changePercent: 5, price: 1, volume: 1, source: "Alpha Vantage" });
@@ -43,7 +43,38 @@ describe("avMessage", () => {
   });
 });
 
+describe("premium endpoints", () => {
+  const premium = "Thank you for using Alpha Vantage! This is a premium endpoint. You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/";
+
+  it("tells a premium-plan message from a throttle message", () => {
+    expect(isPremiumMessage(premium)).toBe(true);
+    expect(isPremiumMessage("Please consider spreading out your free API requests more sparingly (1 request per second)")).toBe(false);
+  });
+
+  it("stops asking for NEWS_SENTIMENT after a premium answer, and reports 'not available' (empty) rather than a failure", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => Response.json({ Information: premium }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      expect(await fetchWorldNews()).toEqual([]);
+      expect(await fetchWorldNews()).toEqual([]);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 describe("createAvBundle", () => {
+  it("does not treat 'news unavailable on this plan' as a failure, so the other call is not repeated every 20 minutes", async () => {
+    const { av, loadStock, advance } = setup({ loadNews: async () => [] });
+    await av.get();
+    advance(30 * 60_000);
+    await av.get();
+    advance(60 * 60_000);
+    await av.get();
+    expect(loadStock).toHaveBeenCalledTimes(1);
+  });
+
   it("makes the two calls one after the other with a gap, never at the same time", async () => {
     const { av, order } = setup();
     await av.get();
