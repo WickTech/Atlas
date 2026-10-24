@@ -107,7 +107,7 @@ function LayerRow({ def }: { def: LayerDef }) {
           <span className="telemetry w-8 text-right">{Math.round(st.opacity * 100)}%</span>
         </label>
       )}
-      {st.enabled && st.status === "error" && <p className="mt-1 pl-9 text-[10px] text-sev-5">Source unavailable — retrying</p>}
+      {st.enabled && st.status === "error" && <p className="mt-1 pl-9 text-[10px] text-sev-5-text">Source unavailable — retrying</p>}
     </li>
   );
 }

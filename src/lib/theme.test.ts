@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hexToRgb, palette, riskFillColor, riskStateFillColor, riskStateFillOpacity, severityColor, severityOf, severityVar } from "./theme";
+import { hexToRgb, palette, riskFillColor, riskStateFillColor, riskStateFillOpacity, severityColor, severityOf, severityTextVar, severityVar } from "./theme";
 
 describe("severityOf", () => {
   it("uses the documented thresholds: 20 / 35 / 55 / 75", () => {
@@ -16,6 +16,7 @@ describe("severity colours", () => {
     expect(severityColor(83, "light")).toBe("#C8231A");
     expect(severityVar(83)).toBe("var(--sev-5)");
     expect(severityVar(0)).toBe("var(--sev-1)");
+    expect(severityTextVar(83)).toBe("var(--sev-5-text)");
   });
   it("keeps calm regions invisible and severe ones the strongest", () => {
     for (const mode of ["dark", "light"] as const) {

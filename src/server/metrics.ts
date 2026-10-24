@@ -5,7 +5,7 @@
 import type { Article, CategoryCount, EnrichedArticle, Metrics } from "@/types/metrics";
 
 import { fetchBestPerformingStock, fetchWorldNews } from "./alphaVantage";
-import { generateBriefs } from "./briefs";
+import { ruleBasedBriefs } from "./briefs";
 import { ALL_CATEGORIES, classifyArticle } from "./categories";
 import { computeCountryIndex } from "./countryIndex";
 import { fetchFinance } from "./finance";
@@ -62,8 +62,10 @@ export const generateMetrics = async (): Promise<Metrics> => {
   }, {});
   const categories: CategoryCount[] = ALL_CATEGORIES.map((c) => ({ ...c, count: catCounts[c.key] ?? 0 })).filter((c) => c.count > 0);
 
-  // Briefs depend on the classified news, so run after assembly (LLM call).
-  const briefs = await generateBriefs(news);
+  // The LLM briefing is deliberately NOT generated here: a free-tier model takes 5-15 s,
+  // which used to be added on top of the fan-out on every cold refresh. This payload
+  // carries the instant rule-based digest; /api/briefing serves the AI version separately.
+  const briefs = ruleBasedBriefs(news);
 
   return {
     sentiment,

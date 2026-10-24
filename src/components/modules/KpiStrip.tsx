@@ -17,7 +17,7 @@ export function KpiStrip({ metrics }: { metrics: Metrics }) {
     { label: "Market Mood", value: s.overall.label, accent: sentimentColor(s.overall.bucket) },
     { label: "News Tracked", value: compactNumber(metrics.news.length) },
     { label: "Top Driver", value: topDriver ? topDriver.ticker : "—", accent: topDriver ? sentimentColor(topDriver.label) : undefined },
-    { label: "Active Signals", value: compactNumber(metrics.signals.length), accent: highSignals ? "var(--sev-5)" : undefined }
+    { label: "Active Signals", value: compactNumber(metrics.signals.length), accent: highSignals ? "var(--sev-5-text)" : undefined }
   ];
 
   return (

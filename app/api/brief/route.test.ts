@@ -23,7 +23,9 @@ const post = (POST: Awaited<ReturnType<typeof load>>, payload: unknown, ip = "1.
   POST(new NextRequest("http://localhost/api/brief", { method: "POST", body: typeof payload === "string" ? payload : JSON.stringify(payload), headers: { "x-forwarded-for": ip } }));
 
 describe("POST /api/brief", () => {
-  beforeEach(() => complete.mockReset());
+  beforeEach(() => {
+    complete.mockReset();
+  });
 
   it("rejects invalid JSON, unusable input and oversized bodies without calling the LLM", async () => {
     const POST = await load();

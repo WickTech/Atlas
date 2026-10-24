@@ -74,6 +74,9 @@ export function riskFillOpacity(mode: ThemeMode = "dark", prop = "risk") {
 /** Theme-aware CSS colour for DOM use: follows the active theme with no hook or re-render. */
 export const severityVar = (score: number): string => `var(--sev-${severityOf(score)})`;
 
+/** Same step, but the AA-safe variant for coloured *text* (the fill can be too faint for small type). */
+export const severityTextVar = (score: number): string => `var(--sev-${severityOf(score)}-text)`;
+
 /** Hex ("#rrggbb") -> deck.gl RGB triple. */
 export const hexToRgb = (hex: string): [number, number, number] => {
   const n = Number.parseInt(hex.slice(1), 16);

@@ -6,7 +6,7 @@ import { useEffect, useState, type RefObject } from "react";
 import type { MetricsStatus } from "@/hooks/useMetrics";
 import type { Theme } from "@/hooks/useTheme";
 import { LENSES, type Scope } from "@/lib/constants";
-import { THREAT_COLOR, threatSoft, type ThreatLevel } from "@/lib/threat";
+import { THREAT_COLOR, THREAT_FILL, threatSoft, type ThreatLevel } from "@/lib/threat";
 import { useConsole } from "@/state/store";
 
 const STATUS: Record<MetricsStatus, { label: string; color: string }> = {
@@ -64,7 +64,7 @@ export function TopBar({ status, threat, theme, onToggleTheme, searchRef }: Prop
       {threat ? (
         <span
           className="telemetry inline-flex min-w-[17ch] items-center gap-1.5 border px-2 py-0.5 font-semibold"
-          style={{ color: THREAT_COLOR[threat.level], background: threatSoft(threat.level), borderColor: THREAT_COLOR[threat.level] }}
+          style={{ color: THREAT_COLOR[threat.level], background: threatSoft(threat.level), borderColor: THREAT_FILL[threat.level] }}
           title={`Threat posture from live signals: ${threat.highs} high-severity signal${threat.highs === 1 ? "" : "s"} (0 low · 1 guarded · 2–3 elevated · 4+ high)`}
         >
           THREAT {threat.level}

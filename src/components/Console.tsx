@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef } from "react";
 
+import { useBriefing } from "@/hooks/useBriefing";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useMetrics } from "@/hooks/useMetrics";
 import { useTheme } from "@/hooks/useTheme";
@@ -57,6 +58,7 @@ export function Console() {
   const selectCountry = useConsole((s) => s.selectCountry);
   const select = useConsole((s) => s.select);
   const ui = useConsole((s) => s.ui);
+  const { briefing, loading: briefingLoading } = useBriefing(!!metrics && ui.rightOpen && ui.rightTab === "brief");
   const setUi = useConsole((s) => s.setUi);
   const toggleLayer = useConsole((s) => s.toggleLayer);
   const selection = useConsole((s) => s.selection);
@@ -167,7 +169,7 @@ export function Console() {
               ),
               brief: (
                 <>
-                  <AiBriefs briefs={metrics.briefs} />
+                  <AiBriefs briefs={briefing ?? metrics.briefs} generating={briefingLoading} />
                   <div className="border-t border-border p-4">
                     <LatestFeed news={metrics.news} />
                   </div>

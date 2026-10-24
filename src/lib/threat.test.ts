@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Signal } from "@/types/metrics";
-import { THREAT_COLOR, threatLevel } from "./threat";
+import { THREAT_COLOR, THREAT_FILL, threatLevel } from "./threat";
 
 const sig = (severity: Signal["severity"]) => ({ severity }) as Signal;
 const highs = (n: number) => Array.from({ length: n }, () => sig("high"));
@@ -22,6 +22,9 @@ describe("threatLevel", () => {
   });
 
   it("has a colour for every level", () => {
-    for (const level of ["LOW", "GUARDED", "ELEVATED", "HIGH"] as const) expect(THREAT_COLOR[level]).toMatch(/^var\(--sev-[1-4]\)$/);
+    for (const level of ["LOW", "GUARDED", "ELEVATED", "HIGH"] as const) {
+      expect(THREAT_FILL[level]).toMatch(/^var\(--sev-[1-4]\)$/);
+      expect(THREAT_COLOR[level]).toMatch(/^var\(--sev-[1-4]-text\)$/);
+    }
   });
 });
