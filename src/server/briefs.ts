@@ -50,7 +50,7 @@ export const generateBriefs = async (news: EnrichedArticle[] = [], budgetMs?: nu
     'Respond with ONLY JSON: {"india":"2-3 sentence brief","global":"2-3 sentence brief","categories":{"<categoryLabel>":"one-line takeaway"}}'
   ].join("\n");
 
-  const result = await complete({ system: "You output only valid JSON.", prompt, budgetMs });
+  const result = await complete({ system: "You output only valid JSON.", prompt, budgetMs, json: true });
   const parsed = parseJsonLoose<{ india?: string; global?: string; categories?: Record<string, string> }>(result?.text);
   if (!result || !parsed) return ruleBasedBriefs(news);
 
