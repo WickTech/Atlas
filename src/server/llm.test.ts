@@ -116,7 +116,6 @@ describe("Groq model discovery", () => {
     vi.resetModules();
   });
   const modelsResponse = () => Response.json({ data: [{ id: "whisper-large-v3" }, { id: "openai/gpt-oss-20b" }, { id: "llama-3.3-70b-versatile" }] });
-  const reasoningOnly = () => Response.json({ data: [{ id: "whisper-large-v3" }, { id: "openai/gpt-oss-20b" }] });
   const sentModel = (fetchMock: ReturnType<typeof vi.fn>, call: number) => JSON.parse((fetchMock.mock.calls[call] as [string, RequestInit])[1].body as string).model;
 
   it("on a 404 lists the key's models, retries with a suitable one, and remembers it", async () => {
