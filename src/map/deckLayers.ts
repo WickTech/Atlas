@@ -7,6 +7,7 @@ import type { GeoItem } from "@/layers/types";
 import type { LiveData } from "@/layers/useLiveLayers";
 import type { CountryCluster } from "@/lib/news";
 import { flightItem } from "@/layers/flights";
+import { hazardStyle } from "@/layers/hazards";
 import type { FlightTuple } from "@/server/live";
 import type { LayerId, LayerState } from "@/state/types";
 
@@ -138,9 +139,13 @@ export const liveLayers = ({ data, zoom, layers, selectedId, dark, onHover, onCl
         opacity: layers.hazards.opacity,
         getPosition: (d) => lift(d.coord),
         getRadius: (d) => (d.severity === "high" ? 9 : d.severity === "medium" ? 6.5 : 4.5),
-        getFillColor: (d) => withAlpha(c.disasters, SEV_ALPHA[d.severity]),
-        getLineColor: withAlpha(c.outline, 0.63),
-        getLineWidth: (d) => ring(d.id) * (d.source === "GDACS" ? 1.5 : 0.75),
+        // One hue, three styles (see src/layers/hazards.ts): solid = fire/heat, ring = water/storm, soft = other.
+        getFillColor: (d) => {
+          const style = hazardStyle(d.category);
+          return withAlpha(c.disasters, style === "heat" ? SEV_ALPHA[d.severity] : style === "water" ? 0.1 : 0.4);
+        },
+        getLineColor: (d) => (hazardStyle(d.category) === "heat" ? withAlpha(c.outline, 0.63) : withAlpha(c.disasters, 1)),
+        getLineWidth: (d) => ring(d.id) * (hazardStyle(d.category) === "water" ? 2 : d.source === "GDACS" ? 1.5 : 0.75),
         updateTriggers: { getLineWidth: [selectedId] }
       })
     );
