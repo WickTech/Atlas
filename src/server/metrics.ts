@@ -4,15 +4,16 @@
 // upstream is down.
 import type { Article, CategoryCount, EnrichedArticle, Metrics } from "@/types/metrics";
 
-import { avBundle } from "./alphaVantage";
+import { avBundle, FALLBACK_ARTICLE } from "./alphaVantage";
 import { ruleBasedBriefs } from "./briefs";
 import { ALL_CATEGORIES, classifyArticle } from "./categories";
 import { computeCountryIndex } from "./countryIndex";
 import { fetchFinance } from "./finance";
 import { fetchGdeltBundle, isIndiaRelated } from "./gdelt";
 import { normalizeCountryName } from "./geo";
+import { scoreHeadline } from "./headlineSentiment";
 import { fetchRssNews } from "./rss";
-import { computeSentiment } from "./sentiment";
+import { computeSentiment, labelForScore } from "./sentiment";
 import { computeSignals } from "./signals";
 
 // Keeps payloads small: the feed, map and risk index only need the freshest slice.
@@ -39,13 +40,24 @@ export const mergeNews = (items: Article[]): Article[] => {
   return [...scored, ...plain].sort(newestFirst);
 };
 
-export const enrich = (n: Article): EnrichedArticle => ({
-  ...n,
-  indiaRelated: n.indiaRelated ?? isIndiaRelated(n),
-  category: classifyArticle(n),
-  // Normalized to the map's topojson name so map/risk clicks filter the feed.
-  countryNorm: normalizeCountryName(n.country)
-});
+/** Gives an unscored article a wording-based score when its text has sentiment words. */
+const withSentiment = (n: Article): Article => {
+  if (n.sentimentScore != null) return { ...n, sentimentMethod: n.sentimentMethod ?? "alpha-vantage" };
+  const h = scoreHeadline(`${n.title ?? ""} ${n.summary ?? ""}`);
+  if (!h) return n;
+  return { ...n, sentimentScore: h.score, sentimentLabel: labelForScore(h.score), sentimentMethod: "headline-wording" };
+};
+
+export const enrich = (raw: Article): EnrichedArticle => {
+  const n = withSentiment(raw);
+  return {
+    ...n,
+    indiaRelated: n.indiaRelated ?? isIndiaRelated(n),
+    category: classifyArticle(n),
+    // Normalized to the map's topojson name so map/risk clicks filter the feed.
+    countryNorm: normalizeCountryName(n.country)
+  };
+};
 
 export const generateMetrics = async (): Promise<Metrics> => {
   const [{ bestStock, news: avNews }, rssNews, gdelt, finance] = await Promise.all([
@@ -57,7 +69,7 @@ export const generateMetrics = async (): Promise<Metrics> => {
 
   // The AV fallback placeholder only belongs in the feed when nothing real arrived.
   const live = [...avNews.filter((n) => n.provider !== "Fallback"), ...rssNews, ...gdelt.news];
-  const news = mergeNews(live.length ? live : avNews).map(enrich);
+  const news = mergeNews(live.length ? live : avNews.length ? avNews : [FALLBACK_ARTICLE]).map(enrich);
   const sentiment = computeSentiment(news, gdelt.tone);
   const countryIndex = computeCountryIndex(news);
   const signals = computeSignals(news, countryIndex);

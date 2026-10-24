@@ -23,7 +23,12 @@ export function NewsCard({ item, onSelectTicker }: { item: Article; onSelectTick
         <div className="mb-1 flex items-center gap-2 text-xs text-muted">
           <span className="truncate font-medium">{item.source || item.sourceDomain}</span>
           {item.timePublished && <span className="telemetry">· {relativeTime(item.timePublished)}</span>}
-          <span className={`chip ml-auto shrink-0 ${sentimentChipClass(item.sentimentLabel)}`}>{item.sentimentLabel || "Neutral"}</span>
+          <span
+            className={`chip ml-auto shrink-0 ${sentimentChipClass(item.sentimentLabel)}`}
+            title={item.sentimentMethod === "headline-wording" ? "Estimated from the headline's wording" : item.sentimentMethod === "alpha-vantage" ? "Alpha Vantage news sentiment" : undefined}
+          >
+            {item.sentimentLabel || "Neutral"}
+          </span>
         </div>
 
         <a href={item.url} target="_blank" rel="noreferrer" className="block text-sm leading-snug font-semibold text-fg hover:text-accent">

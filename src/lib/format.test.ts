@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deltaArrow, deltaClass, formatIndianNumber, formatPercent, relativeTime, sentimentBucket, sentimentChipClass, sentimentColor, sevColor } from "./format";
+import { deltaArrow, deltaClass, moodLabel, formatIndianNumber, formatPercent, relativeTime, sentimentBucket, sentimentChipClass, sentimentColor, sevColor } from "./format";
 
 describe("number formatting", () => {
   it("shows N/A for missing values", () => {
@@ -57,6 +57,10 @@ describe("sentiment helpers", () => {
     expect(deltaArrow(0)).toBe("▲");
     expect(deltaArrow(-0.1)).toBe("▼");
     expect(deltaArrow(null)).toBe("");
+  });
+  it("calls a wording-based mood 'News Mood' and a provider-scored one 'Market Mood'", () => {
+    expect(moodLabel("headline-wording")).toBe("News Mood");
+    for (const m of ["alpha-vantage", "gdelt-tone", "none"] as const) expect(moodLabel(m)).toBe("Market Mood");
   });
   it("has a colour for every severity", () => {
     expect(sevColor("high")).toBe("var(--sev-5)");

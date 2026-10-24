@@ -94,6 +94,30 @@ describe("mergeNews", () => {
   });
 });
 
+describe("headline-wording sentiment in the pipeline", () => {
+  it("scores unscored articles from their wording and labels the method", () => {
+    const up = enrich(article({ title: "Sensex surges to a record high", sentimentScore: null }));
+    expect(up.sentimentMethod).toBe("headline-wording");
+    expect(up.sentimentScore).toBeGreaterThan(0.15);
+    expect(up.sentimentLabel).toBe("Bullish");
+    const down = enrich(article({ title: "Markets crash on war fears", sentimentScore: null }));
+    expect(down.sentimentLabel).toBe("Bearish");
+  });
+  it("leaves articles with no sentiment words unscored, and keeps provider scores untouched", () => {
+    expect(enrich(article({ title: "Cabinet meets on Tuesday", sentimentScore: null })).sentimentScore).toBeNull();
+    const av = enrich(article({ title: "Stocks crash", sentimentScore: 0.4, provider: "Alpha Vantage" }));
+    expect(av.sentimentScore).toBe(0.4);
+    expect(av.sentimentMethod).toBe("alpha-vantage");
+  });
+  it("reports where the overall mood came from", () => {
+    const wording = computeSentiment([enrich(article({ title: "Shares rally", sentimentScore: null }))], null);
+    expect(wording.method).toBe("headline-wording");
+    expect(computeSentiment([enrich(article({ sentimentScore: 0.3 }))], null).method).toBe("alpha-vantage");
+    expect(computeSentiment([article({ title: "Nothing here" })], { bins: [], average: -4 }).method).toBe("gdelt-tone");
+    expect(computeSentiment([article({ title: "Nothing here" })], null).method).toBe("none");
+  });
+});
+
 describe("sentiment", () => {
   it("averages scored articles and falls back to GDELT tone", () => {
     const s = computeSentiment([article({ sentimentScore: 0.3 }), article({ sentimentScore: 0.1 })], null);

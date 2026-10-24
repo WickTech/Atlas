@@ -155,7 +155,7 @@ export function Console() {
               ),
               markets: (
                 <>
-                  <SentimentGauge overall={metrics.sentiment.overall} />
+                  <SentimentGauge overall={metrics.sentiment.overall} method={metrics.sentiment.method} />
                   <MarketsPanel instruments={marketInstruments} onSelectInstrument={(i) => openTicker(i.symbol)} />
                 </>
               ),

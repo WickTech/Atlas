@@ -31,7 +31,7 @@ Real-time global situational-awareness console — country risk, cross-stream si
 | Publisher RSS (The Hindu, NDTV, TOI, Mint, ET, BBC, Al Jazeera, DW, France 24, Guardian, NPR, UN News) | News backbone, subject-country tagging | none | Headlines + links only, per publisher terms |
 | GDELT DOC 2.0 | Supplementary world news + tone (throttled to 1 req / 5 s per IP, so best-effort) | none | Open use with citation |
 | Yahoo Finance chart API | India + global markets | none | Unofficial endpoint, Yahoo terms |
-| Alpha Vantage | Per-article sentiment (Market Mood, Top Driver), top gainer. Free tier is 25 requests/day and 1/second, so the two calls are spaced apart and cached for 3 h | optional `ALPHA_VANTAGE_API_KEY` | Free tier terms |
+| Alpha Vantage | Top gainer (and per-article news sentiment on a premium plan; free keys get "premium endpoint" for that). Free tier is 25 requests/day and 1/second, so calls are spaced apart and cached for 3 h | optional `ALPHA_VANTAGE_API_KEY` | Free tier terms |
 | Groq / OpenRouter (`openrouter/free`) | AI briefs, deterministic fallback otherwise | optional `GROQ_API_KEY` / `OPENROUTER_API_KEY` | Provider terms |
 | OpenFreeMap (OSM) · CARTO fallback | Vector basemaps | none | ODbL (OSM data), attribution shown on map |
 | USGS real-time feed | Earthquakes M2.5+ (browser-direct, CORS-open) | none | U.S. public domain |
@@ -101,6 +101,7 @@ Resilience: every upstream self-falls-back; the route coalesces concurrent cold 
 ## Console
 
 - Full-bleed globe with a floating **layer dock** (live entity counts, status, opacity), a docked **intel panel** (Intel · Markets · News · Brief), and a **status rail** showing which sources contributed to the current refresh, API latency and a headline tape.
+- **News Mood** is computed from headline wording (a transparent positive/negative word list with negation, `src/server/headlineSentiment.ts`), because per-article news sentiment is a premium Alpha Vantage feature. The tile, gauge and chips say how the number was produced; an Alpha Vantage premium key is used automatically when present.
 - **Nine layers** in five groups: regional risk, live news, earthquakes, disasters, aircraft, internet outages, chokepoints & ports, traffic cameras, live TV. Disaster markers share one hue and show the kind of event by style (solid = fire / heat, ring = water / storm, soft = ground / other), and the layer dock warns when one source behind a layer (say GDACS) is down. The Intel tab lists the newest CISA Known Exploited Vulnerabilities while the internet-outage layer is on. Each fetches only while it's on, polls at a cadence matched to its source, pauses in background tabs, and reports status/count/errors to the dock. Small slow-moving layers persist to localStorage and repaint instantly on reload.
 - Aircraft are fetched for the visible box only (zoom ≥ 4, 2°-quantized so pans share cache keys) and drawn radar-style: a dot at barometric altitude plus a heading tail scaled to ground speed.
 - Click a camera or TV marker for a floating viewer (map stays interactive). Click anything else, pick a country, or press `G` and click any point to open the **inspector**. It shows facts and the source link, the country found by point-in-polygon on the loaded geometry, events within 500 km by great-circle distance, a coverage/event timeline, and the latest matching headlines.

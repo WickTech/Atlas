@@ -30,6 +30,8 @@ export interface Article {
   country?: string | null;
   language?: string | null;
   indiaRelated?: boolean;
+  /** How `sentimentScore` was produced; absent when the article has none. */
+  sentimentMethod?: SentimentMethod;
 }
 
 /** Article after metrics enrichment: always classified + country-normalized. */
@@ -65,8 +67,13 @@ export interface TopTicker {
   label: SentimentLabel;
 }
 
+/** Where a sentiment number comes from, so the UI never implies more rigour than it has. */
+export type SentimentMethod = "alpha-vantage" | "headline-wording" | "gdelt-tone" | "none";
+
 export interface Sentiment {
   overall: { score: number | null; label: SentimentLabel; bucket: SentimentBucket };
+  /** What the overall score was computed from. */
+  method: SentimentMethod;
   distribution: Record<SentimentBucket, number>;
   trend: { label: string; value: number }[];
   topTickers: TopTicker[];
