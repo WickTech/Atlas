@@ -94,8 +94,10 @@ describe("JSON mode", () => {
 
 describe("pickGroqModel", () => {
   it("prefers the small fast chat models, in order", () => {
-    expect(pickGroqModel(["whisper-large-v3", "llama-3.3-70b-versatile", "openai/gpt-oss-20b"])).toBe("openai/gpt-oss-20b");
-    expect(pickGroqModel(["llama-3.1-8b-instant", "openai/gpt-oss-20b"])).toBe("llama-3.1-8b-instant");
+    expect(pickGroqModel(["whisper-large-v3", "openai/gpt-oss-20b", "llama-3.3-70b-versatile"])).toBe("llama-3.3-70b-versatile");
+    expect(pickGroqModel(["openai/gpt-oss-20b", "llama-3.1-8b-instant"])).toBe("llama-3.1-8b-instant");
+    // reasoning models only when no plain chat model is available
+    expect(pickGroqModel(["whisper-large-v3", "openai/gpt-oss-20b"])).toBe("openai/gpt-oss-20b");
   });
   it("never picks speech, guard, embedding or compound models", () => {
     expect(pickGroqModel(["whisper-large-v3-turbo", "meta-llama/llama-guard-4-12b", "playai-tts", "groq/compound"])).toBeUndefined();
@@ -114,6 +116,7 @@ describe("Groq model discovery", () => {
     vi.resetModules();
   });
   const modelsResponse = () => Response.json({ data: [{ id: "whisper-large-v3" }, { id: "openai/gpt-oss-20b" }, { id: "llama-3.3-70b-versatile" }] });
+  const reasoningOnly = () => Response.json({ data: [{ id: "whisper-large-v3" }, { id: "openai/gpt-oss-20b" }] });
   const sentModel = (fetchMock: ReturnType<typeof vi.fn>, call: number) => JSON.parse((fetchMock.mock.calls[call] as [string, RequestInit])[1].body as string).model;
 
   it("on a 404 lists the key's models, retries with a suitable one, and remembers it", async () => {
@@ -131,9 +134,9 @@ describe("Groq model discovery", () => {
     const out = await fresh(REQ);
     expect(out).toMatchObject({ provider: "groq", text: "recovered" });
     expect(sentModel(fetchMock, 0)).toBe("llama-3.1-8b-instant");
-    expect(sentModel(fetchMock, 2)).toBe("openai/gpt-oss-20b");
+    expect(sentModel(fetchMock, 2)).toBe("llama-3.3-70b-versatile");
     await fresh(REQ);
-    expect(sentModel(fetchMock, 3)).toBe("openai/gpt-oss-20b"); // remembered: no new discovery
+    expect(sentModel(fetchMock, 3)).toBe("llama-3.3-70b-versatile"); // remembered: no new discovery
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
@@ -158,5 +161,64 @@ describe("Groq model discovery", () => {
     vi.stubGlobal("fetch", fetchMock);
     expect(await fresh(REQ)).toMatchObject({ provider: "openrouter" });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Groq error handling", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+  const body = (fetchMock: ReturnType<typeof vi.fn>, call: number) => JSON.parse((fetchMock.mock.calls[call] as [string, RequestInit])[1].body as string);
+
+  it("retries without JSON mode when Groq answers 400, and still returns the text", async () => {
+    vi.stubEnv("GROQ_API_KEY", "g");
+    vi.stubEnv("GROQ_MODEL", "some-model");
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response('{"error":{"message":"response_format not supported"}}', { status: 400 })).mockResolvedValueOnce(ok('{"india":"x"}'));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await complete({ ...REQ, json: true })).toMatchObject({ provider: "groq", text: '{"india":"x"}' });
+    expect(body(fetchMock, 0).response_format).toEqual({ type: "json_object" });
+    expect(body(fetchMock, 1).response_format).toBeUndefined();
+  });
+
+  it("puts the provider's error body in the log line so a 400 explains itself", async () => {
+    vi.stubEnv("GROQ_API_KEY", "g");
+    vi.stubEnv("GROQ_MODEL", "some-model");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response('{"error":{"message":"max_tokens is too large"}}', { status: 400 })));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await complete(REQ)).toBeNull();
+    expect(warn.mock.calls.map((c) => String(c[0])).join("\n")).toMatch(/groq failed: .*groq 400: .*max_tokens is too large/);
+  });
+
+  it("asks reasoning (gpt-oss) models to think briefly", async () => {
+    vi.stubEnv("GROQ_API_KEY", "g");
+    vi.stubEnv("GROQ_MODEL", "openai/gpt-oss-20b");
+    const fetchMock = vi.fn().mockResolvedValue(ok("x"));
+    vi.stubGlobal("fetch", fetchMock);
+    await complete(REQ);
+    expect(body(fetchMock, 0).reasoning_effort).toBe("low");
+  });
+
+  it("remembers a discovered model only after it has answered", async () => {
+    vi.resetModules();
+    const { complete: fresh } = await import("./llm");
+    vi.stubEnv("GROQ_API_KEY", "g");
+    vi.stubEnv("GROQ_MODEL", "");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("gone", { status: 404 }))
+      .mockResolvedValueOnce(Response.json({ data: [{ id: "openai/gpt-oss-20b" }] }))
+      .mockResolvedValueOnce(new Response("bad request", { status: 400 })) // the discovered model fails
+      .mockResolvedValueOnce(new Response("gone", { status: 404 })) // next call starts again from the default
+      .mockResolvedValueOnce(Response.json({ data: [{ id: "openai/gpt-oss-20b" }] }))
+      .mockResolvedValueOnce(ok("works"));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await fresh(REQ)).toBeNull();
+    expect(await fresh(REQ)).toMatchObject({ text: "works" });
+    expect(body(fetchMock, 3).model).toBe("llama-3.1-8b-instant"); // not stuck on the failed choice
   });
 });

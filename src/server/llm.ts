@@ -38,17 +38,24 @@ const DEFAULT_BUDGET_MS = 15_000;
 class HttpError extends Error {
   constructor(
     message: string,
-    readonly status: number
+    readonly status: number,
+    /** Start of the provider's error body (never contains our key), so a 400 explains itself in the logs. */
+    readonly detail = ""
   ) {
-    super(message);
+    super(detail ? `${message}: ${detail}` : message);
   }
 }
+
+/** gpt-oss models reason before answering; keep that short so the budgeted answer isn't eaten by it. */
+const isReasoningModel = (model: string) => /gpt-oss/i.test(model);
 
 /** Model picked by discovery after the configured/default one 404'd; lives for this instance. */
 let groqModel: string | undefined;
 
 /** Best-first. Small and fast chat models first: briefs are short. */
-const GROQ_PREFERRED = ["llama-3.1-8b-instant", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "openai/gpt-oss-120b", "llama-3.1-70b-versatile"];
+// Plain chat models before reasoning models (gpt-oss): reasoning tokens count against max_tokens, and the
+// short briefs here budget only a few hundred.
+const GROQ_PREFERRED = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "openai/gpt-oss-20b", "openai/gpt-oss-120b"];
 const GROQ_NOT_CHAT = /whisper|guard|tts|orpheus|embed|playai|compound|safeguard|vision-preview|moderation/i;
 
 /** Chooses a chat model from Groq's /models list (ids only; pure, so it is testable). */
@@ -86,7 +93,7 @@ const providers = (): ProviderConfig[] => [
 // sends response headers early and holds the body until generation finishes, so
 // a timer that stops at the headers (fetchWithTimeout) leaves `res.json()` hanging
 // past the function limit and the caller 504s instead of using its fallback.
-const callProvider = async (p: ProviderConfig, key: string, req: LlmRequest, timeoutMs: number): Promise<LlmResult> => {
+const callProvider = async (p: ProviderConfig, key: string, req: LlmRequest, timeoutMs: number, jsonMode = !!req.json): Promise<LlmResult> => {
   const signal = AbortSignal.timeout(timeoutMs);
   const res = await fetch(p.url, {
     method: "POST",
@@ -96,14 +103,18 @@ const callProvider = async (p: ProviderConfig, key: string, req: LlmRequest, tim
       model: p.model,
       temperature: 0.3,
       max_tokens: req.maxTokens ?? 700,
-      ...(req.json && p.supportsJsonMode ? { response_format: { type: "json_object" } } : {}),
+      ...(jsonMode && p.supportsJsonMode ? { response_format: { type: "json_object" } } : {}),
+      ...(isReasoningModel(p.model) ? { reasoning_effort: "low" } : {}),
       messages: [
         { role: "system", content: req.system },
         { role: "user", content: req.prompt }
       ]
     })
   });
-  if (!res.ok) throw new HttpError(`${p.id} ${res.status}`, res.status);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new HttpError(`${p.id} ${res.status}`, res.status, body.replace(/\s+/g, " ").slice(0, 200));
+  }
   const data = (await res.json()) as { model?: string; choices?: { message?: { content?: string } }[] };
   const text = data?.choices?.[0]?.message?.content;
   if (!text) throw new Error(`${p.id} empty completion`);
@@ -119,18 +130,31 @@ export const complete = async (req: LlmRequest): Promise<LlmResult | null> => {
     const remaining = deadline - Date.now();
     if (remaining < 500) break;
     try {
+      const budget = () => Math.min(PER_CALL_MS, deadline - Date.now());
+      // A model/endpoint that rejects JSON mode (400) can still answer; parseJsonLoose copes with plain JSON text.
+      const attempt = async (provider: ProviderConfig) => {
+        try {
+          return await callProvider(provider, key, req, budget());
+        } catch (err) {
+          if (!(err instanceof HttpError) || err.status !== 400 || !req.json || !provider.supportsJsonMode || deadline - Date.now() < 1500) throw err;
+          console.warn(`[llm] ${provider.id} rejected JSON mode (${err.detail || "400"}); retrying without it`);
+          return await callProvider(provider, key, req, budget(), false);
+        }
+      };
       try {
-        return await callProvider(p, key, req, Math.min(PER_CALL_MS, remaining));
+        return await attempt(p);
       } catch (err) {
         // The configured or default Groq model is gone for this key (404): list what the key can
-        // use, switch to a suitable chat model, remember it, and retry once within the budget.
+        // use, switch to a suitable chat model, retry once within the budget, and remember it
+        // only once it has actually answered.
         if (p.id !== "groq" || !(err instanceof HttpError) || err.status !== 404 || process.env.GROQ_MODEL) throw err;
         const left = deadline - Date.now();
         const found = left > 1500 ? await discoverGroqModel(key, Math.min(4000, left - 1000)) : undefined;
         if (!found || found === p.model) throw err;
-        console.warn(`[llm] groq model ${p.model} returned 404; using ${found} instead`);
+        console.warn(`[llm] groq model ${p.model} returned 404; trying ${found}`);
+        const result = await attempt({ ...p, model: found });
         groqModel = found;
-        return await callProvider({ ...p, model: found }, key, req, Math.min(PER_CALL_MS, deadline - Date.now()));
+        return result;
       }
     } catch (err) {
       // rate limit / outage / bad key / timeout -> next provider. Log the reason
