@@ -197,9 +197,26 @@ export interface C2Record {
   lastOnline: string | null;
 }
 
+/** One entry from CISA's Known Exploited Vulnerabilities catalog (trimmed: the raw feed is ~1.8 MB). */
+export interface KevRecord {
+  cve: string;
+  vendor: string;
+  product: string;
+  name: string;
+  /** YYYY-MM-DD the entry was added to the catalog. */
+  added: string;
+  /** Federal remediation deadline, when CISA sets one. */
+  due: string | null;
+  ransomware: boolean;
+}
+
 export interface CyberPayload {
   outages: OutageRecord[];
   c2: C2Record[];
+  /** Newest catalog additions first. */
+  kev: KevRecord[];
+  /** Entries in the whole catalog, not just `kev`. */
+  kevTotal: number;
   sources: SourceResult[];
   fetchedAt: string;
 }
@@ -235,15 +252,54 @@ export const parseFeodo = (json: unknown): C2Record[] =>
     f.country ? [{ country: f.country, malware: f.malware ?? "unknown", status: f.status ?? "unknown", asName: f.as_name ?? "", lastOnline: f.last_online ?? null }] : []
   );
 
+interface KevEntry {
+  cveID?: string;
+  vendorProject?: string;
+  product?: string;
+  vulnerabilityName?: string;
+  dateAdded?: string;
+  dueDate?: string;
+  knownRansomwareCampaignUse?: string;
+}
+
+export const KEV_LIMIT = 12;
+
+/** Newest `limit` catalog entries, plus the full catalog size. Entries without a CVE id or date are skipped. */
+export const parseKev = (json: unknown, limit = KEV_LIMIT): { items: KevRecord[]; total: number } => {
+  const all = (json as { vulnerabilities?: KevEntry[] })?.vulnerabilities;
+  if (!Array.isArray(all)) return { items: [], total: 0 };
+  const items = all
+    .filter((v) => v.cveID && v.dateAdded && /^\d{4}-\d{2}-\d{2}$/.test(v.dateAdded))
+    .sort((a, b) => (b.dateAdded as string).localeCompare(a.dateAdded as string) || (b.cveID as string).localeCompare(a.cveID as string))
+    .slice(0, limit)
+    .map((v): KevRecord => ({
+      cve: v.cveID as string,
+      vendor: v.vendorProject ?? "",
+      product: v.product ?? "",
+      name: v.vulnerabilityName ?? "",
+      added: v.dateAdded as string,
+      due: v.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(v.dueDate) ? v.dueDate : null,
+      ransomware: v.knownRansomwareCampaignUse === "Known"
+    }));
+  return { items, total: all.length };
+};
+
 export const fetchCyber = async (): Promise<CyberPayload> => {
   const now = Math.floor(Date.now() / 1000);
-  const [ioda, feodo] = await Promise.all([
+  let kevTotal = 0;
+  const [ioda, feodo, kev] = await Promise.all([
     settle("IODA", async () =>
       parseIoda(await getJson(`https://api.ioda.inetintel.cc.gatech.edu/v2/outages/summary?from=${now - 86400}&until=${now}&entityType=country&limit=100`, 10000))
     ),
-    settle("abuse.ch Feodo", async () => parseFeodo(await getJson("https://feodotracker.abuse.ch/downloads/ipblocklist.json")))
+    settle("abuse.ch Feodo", async () => parseFeodo(await getJson("https://feodotracker.abuse.ch/downloads/ipblocklist.json"))),
+    settle("CISA KEV", async () => {
+      const { items, total } = parseKev(await getJson("https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", 12000));
+      if (!total) throw new Error("empty catalog");
+      kevTotal = total;
+      return items;
+    })
   ]);
-  return { outages: ioda.items, c2: feodo.items, sources: [ioda.result, feodo.result], fetchedAt: new Date().toISOString() };
+  return { outages: ioda.items, c2: feodo.items, kev: kev.items, kevTotal, sources: [ioda.result, feodo.result, kev.result], fetchedAt: new Date().toISOString() };
 };
 
 // ---------- CCTV: TfL JamCams (Open Government Licence) ----------

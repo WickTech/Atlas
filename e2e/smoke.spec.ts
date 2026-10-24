@@ -131,3 +131,42 @@ test.describe("source health in the layer dock", () => {
     await expect(page.getByText(/unavailable/)).toHaveCount(0);
   });
 });
+
+test.describe("CISA KEV panel", () => {
+  const cyber = {
+    outages: [],
+    c2: [],
+    kev: [
+      { cve: "CVE-2026-0001", vendor: "Acme", product: "Gateway", name: "Acme Gateway RCE", added: "2026-10-23", due: "2026-11-13", ransomware: true },
+      { cve: "CVE-2026-0002", vendor: "Globex", product: "Mail", name: "Globex Mail auth bypass", added: "2026-10-22", due: null, ransomware: false }
+    ],
+    kevTotal: 1756,
+    sources: [{ source: "IODA", ok: true, count: 0 }, { source: "abuse.ch Feodo", ok: true, count: 0 }, { source: "CISA KEV", ok: true, count: 2 }],
+    fetchedAt: new Date().toISOString()
+  };
+
+  test("lists the newest exploited vulnerabilities while the cyber layer is on", async ({ page }) => {
+    await page.route("**/api/cyber", (route) => route.fulfill({ json: cyber }));
+    await page.goto("/?l=risk,cyber");
+    const panel = page.getByRole("region", { name: "Exploited vulnerabilities" });
+    await expect(panel).toBeVisible({ timeout: 30_000 });
+    await expect(panel.getByRole("link", { name: /CVE-2026-0001/ })).toHaveAttribute("href", "https://nvd.nist.gov/vuln/detail/CVE-2026-0001");
+    await expect(panel.getByText("ransomware")).toHaveCount(1);
+    await expect(panel.getByText(/1,756/)).toBeVisible();
+  });
+
+  test("is absent when the cyber layer is off", async ({ page }) => {
+    await page.route("**/api/cyber", (route) => route.fulfill({ json: cyber }));
+    await page.goto("/?l=risk");
+    await expect(page.getByRole("tablist", { name: "Intel panel sections" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Exploited vulnerabilities" })).toHaveCount(0);
+  });
+
+  test("warns in the dock when the KEV source is down but outages still load", async ({ page }) => {
+    await page.route("**/api/cyber", (route) =>
+      route.fulfill({ json: { ...cyber, kev: [], kevTotal: 0, sources: [{ source: "IODA", ok: true, count: 0 }, { source: "abuse.ch Feodo", ok: true, count: 0 }, { source: "CISA KEV", ok: false, count: 0, error: "HTTP 503" }] } })
+    );
+    await page.goto("/?l=cyber");
+    await expect(page.getByText("CISA KEV unavailable — showing IODA and abuse.ch Feodo only")).toBeVisible({ timeout: 30_000 });
+  });
+});

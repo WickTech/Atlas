@@ -133,7 +133,7 @@ describe("cyber", () => {
   });
   it("places records at country anchors and fans out co-located C2 hosts", () => {
     const anchors = new Map<string, [number, number]>([["Central African Rep.", [20, 6]], ["United States of America", [-98, 39]]]);
-    const items = cyberItems({ outages: ioda, c2: feodo, sources: [], fetchedAt: "2026-10-22T00:00:00Z" }, anchors);
+    const items = cyberItems({ outages: ioda, c2: feodo, kev: [], kevTotal: 0, sources: [], fetchedAt: "2026-10-22T00:00:00Z" }, anchors);
     expect(items.map((i) => i.id)).toEqual(["ioda:CF", "c2:0", "c2:1"]); // TJ has no anchor here
     expect(items[0]?.severity).toBe("high");
     expect(items[1]?.coord).not.toEqual(items[2]?.coord);
