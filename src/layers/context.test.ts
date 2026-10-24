@@ -15,6 +15,8 @@ const live: LiveData = {
   quakes: [item("q-near", [93.9, 32.4]), item("q-far", [10, 10])],
   hazards: [item("h-near", [94.5, 32.0], "hazard")],
   cyber: [item("ioda:CN", [104, 35], "outage", "China — connectivity disruption")],
+  kev: [],
+  kevTotal: 0,
   strategic: [],
   cctv: [item("cam", [93.8, 32.4], "cctv")],
   broadcasts: [],

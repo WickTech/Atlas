@@ -5,7 +5,7 @@ import { useEffect, useMemo } from "react";
 
 import { fetchJson } from "@/lib/fetchJson";
 import { isoToCountry, quantizeBBox } from "@/lib/geo";
-import type { CyberPayload, FlightTuple, LivePayload, SourceResult } from "@/server/live";
+import type { CyberPayload, FlightTuple, KevRecord, LivePayload, SourceResult } from "@/server/live";
 import { useConsole } from "@/state/store";
 import type { LayerId, LayerStatus } from "@/state/types";
 
@@ -81,6 +81,9 @@ export interface LiveData {
   quakes: GeoItem[];
   hazards: GeoItem[];
   cyber: GeoItem[];
+  /** CISA KEV newest additions (no coordinates, so not a map layer: shown in the Intel panel). */
+  kev: KevRecord[];
+  kevTotal: number;
   cctv: GeoItem[];
   broadcasts: GeoItem[];
   strategic: GeoItem[];
@@ -159,6 +162,8 @@ export function useLiveLayers(anchors: Map<string, [number, number]> | null): Li
       quakes: quakes.data ?? [],
       hazards: hazards.data?.items ?? [],
       cyber: cyber.data && anchors ? cyberItems(cyber.data, anchors) : [],
+      kev: cyber.data?.kev ?? [],
+      kevTotal: cyber.data?.kevTotal ?? 0,
       cctv: cctv.data?.items ?? [],
       broadcasts: on("broadcasts") ? broadcastItems() : [],
       strategic: strategic.data ?? [],

@@ -23,6 +23,7 @@ import { StatusBar } from "./hud/StatusBar";
 import { TopBar } from "./hud/TopBar";
 import { AiBriefs } from "./modules/AiBriefs";
 import { CountryRiskPanel } from "./modules/CountryRiskPanel";
+import { KevPanel } from "./modules/KevPanel";
 import { KpiStrip } from "./modules/KpiStrip";
 import { LatestFeed } from "./modules/LatestFeed";
 import { MarketsPanel } from "./modules/MarketsPanel";
@@ -58,6 +59,7 @@ export function Console() {
   const selectCountry = useConsole((s) => s.selectCountry);
   const select = useConsole((s) => s.select);
   const ui = useConsole((s) => s.ui);
+  const cyberOn = useConsole((s) => s.layers.cyber.enabled);
   const { briefing, loading: briefingLoading } = useBriefing(!!metrics && ui.rightOpen && ui.rightTab === "brief");
   const setUi = useConsole((s) => s.setUi);
   const toggleLayer = useConsole((s) => s.toggleLayer);
@@ -148,6 +150,7 @@ export function Console() {
                   <KpiStrip metrics={metrics} />
                   <CountryRiskPanel countryIndex={metrics.countryIndex} selectedCountry={selected} onSelectCountry={selectCountry} />
                   <SignalsPanel signals={metrics.signals} onSelectCountry={(name) => select({ kind: "country", name })} />
+                  {cyberOn && <KevPanel kev={live.kev} total={live.kevTotal} />}
                 </>
               ),
               markets: (

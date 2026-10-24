@@ -36,6 +36,27 @@ for (const scheme of ["light", "dark"] as const) {
       expect(await contrast(page), "palette").toEqual([]);
     });
 
+    test("CISA KEV panel (with ransomware chip) in the intel panel", async ({ page }) => {
+      await page.route("**/api/cyber", (route) =>
+        route.fulfill({
+          json: {
+            outages: [],
+            c2: [],
+            kev: [
+              { cve: "CVE-2026-0001", vendor: "Acme", product: "Gateway", name: "Acme Gateway RCE", added: "2026-10-23", due: "2026-11-13", ransomware: true },
+              { cve: "CVE-2026-0002", vendor: "Globex", product: "Mail", name: "Globex Mail auth bypass", added: "2026-10-22", due: null, ransomware: false }
+            ],
+            kevTotal: 1756,
+            sources: [{ source: "CISA KEV", ok: true, count: 2 }],
+            fetchedAt: new Date().toISOString()
+          }
+        })
+      );
+      await page.goto("/?l=risk,cyber");
+      await expect(page.getByRole("region", { name: "Exploited vulnerabilities" })).toBeVisible({ timeout: 30_000 });
+      expect(await contrast(page), "KEV panel").toEqual([]);
+    });
+
     test("all layers on, help overlay and mobile layout", async ({ page }) => {
       await page.goto("/?l=risk,news,quakes,hazards,flights,cyber,cctv,broadcasts,strategic");
       await expect(page.getByRole("complementary", { name: "Map layers" })).toBeVisible();
