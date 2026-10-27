@@ -1,6 +1,7 @@
 # Atlas 🌍
 
 [![CI](https://github.com/WickTech/Atlas/actions/workflows/ci.yml/badge.svg)](https://github.com/WickTech/Atlas/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/WickTech/Atlas/badges/coverage.json)](https://github.com/WickTech/Atlas/actions/workflows/coverage.yml)
 [![Security](https://github.com/WickTech/Atlas/actions/workflows/security.yml/badge.svg)](https://github.com/WickTech/Atlas/actions/workflows/security.yml)
 [![Live on Vercel](https://img.shields.io/badge/live-atlas--eight--fawn.vercel.app-000?logo=vercel)](https://atlas-eight-fawn.vercel.app)
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-000?logo=nextdotjs)

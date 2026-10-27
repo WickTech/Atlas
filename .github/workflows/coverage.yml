@@ -1,0 +1,51 @@
+name: Coverage Badge
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run coverage
+        run: npm run test:coverage
+
+      - name: Generate badge JSON
+        run: |
+          PCT=$(node -e "
+            const s = require('./coverage/coverage-summary.json');
+            const t = s.total;
+            const pct = Math.floor(t.lines.pct);
+            process.stdout.write(String(pct));
+          ")
+          COLOR=$(node -e "
+            const p = parseInt('$PCT');
+            process.stdout.write(p >= 80 ? 'brightgreen' : p >= 70 ? 'yellow' : 'red');
+          ")
+          mkdir -p badges
+          cat > badges/coverage.json <<EOF
+          { "schemaVersion": 1, "label": "coverage", "message": "${PCT}%", "color": "${COLOR}" }
+          EOF
+
+      - name: Push badge to badges branch
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d231e62369c1b8477 # v4.0.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./badges
+          publish_branch: badges
+          keep_files: true
