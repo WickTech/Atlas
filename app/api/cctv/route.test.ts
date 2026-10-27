@@ -6,7 +6,7 @@ import type { GeoItem } from "@/layers/types";
 const { fetchCctv } = vi.hoisted(() => ({ fetchCctv: vi.fn() }));
 vi.mock("@/server/live", () => ({ fetchCctv }));
 vi.mock("@/server/cache", () => ({
-  createCache: (_load: unknown, _ttl: unknown) => ({ get: fetchCctv }),
+  createCache: () => ({ get: fetchCctv }),
 }));
 
 import { GET } from "./route";

@@ -5,7 +5,7 @@ import type { FlightTuple, LivePayload } from "@/server/live";
 
 const { cacheGet } = vi.hoisted(() => ({ cacheGet: vi.fn() }));
 vi.mock("@/server/cache", () => ({
-  createKeyedCache: (_load: unknown, _ttl: unknown, _max: unknown) => ({ get: cacheGet }),
+  createKeyedCache: () => ({ get: cacheGet }),
 }));
 // Keep real parseBBox so validation tests exercise the actual code path.
 vi.mock("@/server/live", async (importOriginal) => {

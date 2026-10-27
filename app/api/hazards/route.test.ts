@@ -6,7 +6,7 @@ import type { GeoItem } from "@/layers/types";
 const { fetchHazards } = vi.hoisted(() => ({ fetchHazards: vi.fn() }));
 vi.mock("@/server/live", () => ({ fetchHazards }));
 vi.mock("@/server/cache", () => ({
-  createCache: (_load: unknown, _ttl: unknown) => ({ get: fetchHazards }),
+  createCache: () => ({ get: fetchHazards }),
 }));
 
 import { GET } from "./route";
@@ -14,7 +14,7 @@ import { GET } from "./route";
 const makePayload = (count = 1): LivePayload<GeoItem> => ({
   items: Array.from({ length: count }, (_, i) => ({
     id: `eq:${i}`,
-    kind: "earthquakes",
+    kind: "hazard" as const,
     coord: [0, 0] as [number, number],
     title: `EQ ${i}`,
     ts: null,
