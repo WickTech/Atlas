@@ -11,15 +11,22 @@ vi.mock("@/server/metricsCache", () => ({
 import { GET } from "./route";
 
 const stubMetrics = (): Metrics => ({
-  sentiment: { score: 0.1, label: "neutral", breakdown: [] },
+  sentiment: {
+    overall: { score: 0.1, label: "Neutral", bucket: "neutral" },
+    method: "none",
+    distribution: { bullish: 0, neutral: 1, bearish: 0 },
+    trend: [],
+    topTickers: [],
+    worldTone: { bins: [], average: null },
+  },
   news: [],
   topTickers: [],
-  bestStock: { symbol: "AAPL", change: 0.5, price: 200 },
-  countryIndex: {},
+  bestStock: { symbol: "AAPL", name: "Apple", changePercent: 0.5, price: 200, volume: null, source: "Fallback" },
+  countryIndex: { countries: [], max: 0, india: null },
   signals: [],
   categories: [],
   briefs: { source: "rule-based", india: "", global: "", categories: [], generatedAt: "" },
-  finance: { instruments: [], updatedAt: "" },
+  finance: { instruments: [], composite: { label: "Unknown", value: null }, updatedAt: "" },
   dataSources: ["RSS"],
   updatedAt: new Date().toISOString(),
 });

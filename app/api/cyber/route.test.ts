@@ -11,9 +11,9 @@ vi.mock("@/server/cache", () => ({
 import { GET } from "./route";
 
 const makePayload = (): CyberPayload => ({
-  outages: [{ country: "IN", score: 0.8, kind: "bgp", ts: "2026-01-01T00:00:00Z" }],
-  c2: [{ ip: "1.2.3.4", port: 443, malware: "Emotet", country: "RU", firstSeen: "2026-01-01" }],
-  kev: [{ id: "CVE-2024-0001", vendor: "ACME", product: "Widget", name: "RCE", addedDate: "2024-01-01", dueDate: "2024-01-15", severity: "high" }],
+  outages: [{ country: "IN", code: "IN", score: 0.8, signals: ["bgp"], events: 1 }],
+  c2: [{ country: "RU", malware: "Emotet", status: "online", asName: "AS1234", lastOnline: "2026-01-01" }],
+  kev: [{ cve: "CVE-2024-0001", vendor: "ACME", product: "Widget", name: "RCE", added: "2024-01-01", due: "2024-01-15", ransomware: false }],
   kevTotal: 1200,
   sources: [
     { source: "IODA", ok: true, count: 1 },
