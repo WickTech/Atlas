@@ -5,7 +5,7 @@ import type { CyberPayload } from "@/server/live";
 const { fetchCyber } = vi.hoisted(() => ({ fetchCyber: vi.fn() }));
 vi.mock("@/server/live", () => ({ fetchCyber }));
 vi.mock("@/server/cache", () => ({
-  createCache: (_load: unknown, _ttl: unknown) => ({ get: fetchCyber }),
+  createCache: () => ({ get: fetchCyber }),
 }));
 
 import { GET } from "./route";
