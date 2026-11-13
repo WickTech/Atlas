@@ -8,6 +8,7 @@ import type { GeoItem } from "@/layers/types";
 import type { Severity } from "@/types/metrics";
 
 import { fetchWithTimeout, USER_AGENT } from "./fetchWithTimeout";
+import { safeHttpUrl } from "./safeUrl";
 
 export interface SourceResult {
   source: string;
@@ -91,7 +92,7 @@ export const parseGdacsRss = (xml: string): GeoItem[] => {
         ts: Number.isFinite(t) ? new Date(t).toISOString() : null,
         severity: GDACS_SEV[level] ?? "low",
         source: "GDACS",
-        url: it.link?.replace(/^http:/, "https:"),
+        url: safeHttpUrl(it.link?.replace(/^http:/, "https:")) ?? undefined,
         facts,
         category: GDACS_TYPE[type] ?? type.toLowerCase()
       }

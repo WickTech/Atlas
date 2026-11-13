@@ -75,3 +75,16 @@ describe("detectCountry", () => {
     expect(detectCountry("Markets close mixed")).toBeNull();
   });
 });
+
+describe("parseFeed URL scheme validation", () => {
+  it("drops items whose link is not http(s) and nulls non-http(s) images", () => {
+    const xml = `<rss xmlns:media="http://search.yahoo.com/mrss/"><channel>
+<item><title>Evil</title><link>javascript:alert(1)</link></item>
+<item><title>Evil atom-ish</title><link>data:text/html,x</link></item>
+<item><title>Good</title><link>https://ex.com/g</link><media:content url="javascript:alert(2)" medium="image"/></item>
+</channel></rss>`;
+    const out = parseFeed(xml, "S");
+    expect(out.map((a) => a.title)).toEqual(["Good"]);
+    expect(out[0]?.bannerImage).toBeNull();
+  });
+});

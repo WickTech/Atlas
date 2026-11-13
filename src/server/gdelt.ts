@@ -4,6 +4,7 @@
 // ever run behind a cache. Every fetcher self-falls-back.
 import type { Article, WorldTone } from "@/types/metrics";
 
+import { safeHttpUrl } from "./safeUrl";
 import { asNumber, fetchWithTimeout, USER_AGENT } from "./fetchWithTimeout";
 
 const GDELT_BASE = process.env.GDELT_BASE || "https://api.gdeltproject.org/api/v2/doc/doc";
@@ -71,20 +72,6 @@ interface GdeltArticle {
   language?: string;
   sourcecountry?: string;
 }
-
-/**
- * GDELT article/image URLs are third-party data that end up in `href`s. Accept only
- * absolute http(s) URLs so `javascript:`, `data:` etc. never reach the UI.
- */
-export const safeHttpUrl = (raw: unknown): string | null => {
-  if (typeof raw !== "string") return null;
-  try {
-    const u = new URL(raw.trim());
-    return u.protocol === "https:" || u.protocol === "http:" ? u.href : null;
-  } catch {
-    return null;
-  }
-};
 
 export const toArticle = (a: GdeltArticle): Article => {
   const country = a.sourcecountry || null;

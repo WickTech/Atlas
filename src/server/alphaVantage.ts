@@ -3,6 +3,7 @@
 import type { Article, BestStock } from "@/types/metrics";
 
 import { asNumber, fetchWithTimeout, USER_AGENT } from "./fetchWithTimeout";
+import { safeHttpUrl } from "./safeUrl";
 
 const alphaVantageUrl = (params: Record<string, string>) => {
   const search = new URLSearchParams({ ...params, apikey: process.env.ALPHA_VANTAGE_API_KEY || "demo" });
@@ -136,14 +137,14 @@ export const fetchWorldNews = async (): Promise<Article[]> => {
     )) as { feed?: AvFeedItem[] };
 
     const items: Article[] = Array.isArray(payload?.feed)
-      ? payload.feed.slice(0, 50).map((item) => ({
+      ? payload.feed.slice(0, 50).filter((item) => item.title && safeHttpUrl(item.url)).map((item) => ({
           title: item.title,
-          url: item.url,
+          url: safeHttpUrl(item.url) ?? "",
           source: item.source,
           sourceDomain: item.source_domain || null,
           timePublished: parseAvTime(item.time_published),
           summary: item.summary || "",
-          bannerImage: item.banner_image || null,
+          bannerImage: safeHttpUrl(item.banner_image),
           sentimentScore: asNumber(item.overall_sentiment_score),
           sentimentLabel: item.overall_sentiment_label || "Neutral",
           topics: Array.isArray(item.topics) ? item.topics.map((t) => t.topic).filter((t): t is string => !!t) : [],

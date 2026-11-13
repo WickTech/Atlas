@@ -9,6 +9,7 @@ import type { Article } from "@/types/metrics";
 import { fetchWithTimeout, USER_AGENT } from "./fetchWithTimeout";
 import { detectCountry } from "./gazetteer";
 import { isIndiaRelated } from "./gdelt";
+import { safeHttpUrl } from "./safeUrl";
 
 export interface FeedDef {
   url: string;
@@ -77,10 +78,10 @@ const imageOf = (item: Node): string | null => {
   for (const key of ["media:content", "media:thumbnail"]) {
     const arr = item[key] as Node[] | undefined;
     const url = arr?.find((m) => m["@url"])?.["@url"];
-    if (url) return String(url);
+    if (url) return safeHttpUrl(String(url));
   }
   const enc = item.enclosure as Node | undefined;
-  if (enc?.["@url"] && String(enc["@type"] ?? "image").startsWith("image")) return String(enc["@url"]);
+  if (enc?.["@url"] && String(enc["@type"] ?? "image").startsWith("image")) return safeHttpUrl(String(enc["@url"]));
   return null;
 };
 

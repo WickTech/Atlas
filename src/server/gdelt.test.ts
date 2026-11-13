@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchGdeltJson, fetchGdeltNews, GDELT_TIMEOUT_MS, safeHttpUrl, toArticle } from "./gdelt";
+import { fetchGdeltJson, fetchGdeltNews, GDELT_TIMEOUT_MS, toArticle } from "./gdelt";
+import { safeHttpUrl } from "./safeUrl";
 
 // A response whose headers arrive but whose request never finishes, like a throttled GDELT.
 const hang = (_url: string, init: RequestInit) =>

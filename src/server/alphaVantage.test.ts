@@ -29,6 +29,20 @@ const setup = (over: Partial<Parameters<typeof createAvBundle>[0]> = {}) => {
   return { av, loadNews, loadStock, sleep, order, advance: (ms: number) => (t += ms) };
 };
 
+describe("Alpha Vantage URL scheme validation", () => {
+  it("drops articles with non-http(s) links and nulls bad banner images", async () => {
+    const feed = [
+      { title: "evil", url: "javascript:alert(1)", source: "x" },
+      { title: "ok", url: "https://ex.com/ok", source: "x", banner_image: "javascript:alert(2)" }
+    ];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ feed }), { status: 200 })));
+    const out = await fetchWorldNews();
+    vi.unstubAllGlobals();
+    expect(out.map((a) => a.title)).toEqual(["ok"]);
+    expect(out[0]?.bannerImage).toBeNull();
+  });
+});
+
 describe("avMessage", () => {
   it("recognises Alpha Vantage's in-band messages (HTTP 200 with a message instead of data)", () => {
     expect(avMessage({ Information: "Please spread out your free requests (1 request per second)" })).toMatch(/1 request per second/);
