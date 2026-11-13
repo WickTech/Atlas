@@ -72,16 +72,30 @@ interface GdeltArticle {
   sourcecountry?: string;
 }
 
+/**
+ * GDELT article/image URLs are third-party data that end up in `href`s. Accept only
+ * absolute http(s) URLs so `javascript:`, `data:` etc. never reach the UI.
+ */
+export const safeHttpUrl = (raw: unknown): string | null => {
+  if (typeof raw !== "string") return null;
+  try {
+    const u = new URL(raw.trim());
+    return u.protocol === "https:" || u.protocol === "http:" ? u.href : null;
+  } catch {
+    return null;
+  }
+};
+
 export const toArticle = (a: GdeltArticle): Article => {
   const country = a.sourcecountry || null;
   return {
     title: a.title,
-    url: a.url,
+    url: safeHttpUrl(a.url) ?? "",
     source: a.domain || null,
     sourceDomain: a.domain || null,
     timePublished: parseGdeltTime(a.seendate),
     summary: "",
-    bannerImage: a.socialimage || null,
+    bannerImage: safeHttpUrl(a.socialimage),
     sentimentScore: null, // ToneChart provides aggregate tone separately
     sentimentLabel: "Neutral",
     topics: [],
@@ -99,7 +113,7 @@ export const fetchGdeltNews = async (query = DEFAULT_QUERY, maxrecords = 50): Pr
       gdeltUrl({ query, mode: "ArtList", format: "json", maxrecords: String(maxrecords), sort: "DateDesc" })
     )) as { articles?: GdeltArticle[] };
     const articles = Array.isArray(payload?.articles) ? payload.articles : [];
-    return articles.filter((a) => a.title && a.url).map(toArticle);
+    return articles.filter((a) => a.title && safeHttpUrl(a.url)).map(toArticle);
   } catch {
     return [];
   }
