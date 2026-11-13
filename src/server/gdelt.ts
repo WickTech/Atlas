@@ -4,6 +4,7 @@
 // ever run behind a cache. Every fetcher self-falls-back.
 import type { Article, WorldTone } from "@/types/metrics";
 
+import { safeHttpUrl } from "./safeUrl";
 import { asNumber, fetchWithTimeout, USER_AGENT } from "./fetchWithTimeout";
 
 const GDELT_BASE = process.env.GDELT_BASE || "https://api.gdeltproject.org/api/v2/doc/doc";
@@ -76,12 +77,12 @@ export const toArticle = (a: GdeltArticle): Article => {
   const country = a.sourcecountry || null;
   return {
     title: a.title,
-    url: a.url,
+    url: safeHttpUrl(a.url) ?? "",
     source: a.domain || null,
     sourceDomain: a.domain || null,
     timePublished: parseGdeltTime(a.seendate),
     summary: "",
-    bannerImage: a.socialimage || null,
+    bannerImage: safeHttpUrl(a.socialimage),
     sentimentScore: null, // ToneChart provides aggregate tone separately
     sentimentLabel: "Neutral",
     topics: [],
@@ -99,7 +100,7 @@ export const fetchGdeltNews = async (query = DEFAULT_QUERY, maxrecords = 50): Pr
       gdeltUrl({ query, mode: "ArtList", format: "json", maxrecords: String(maxrecords), sort: "DateDesc" })
     )) as { articles?: GdeltArticle[] };
     const articles = Array.isArray(payload?.articles) ? payload.articles : [];
-    return articles.filter((a) => a.title && a.url).map(toArticle);
+    return articles.filter((a) => a.title && safeHttpUrl(a.url)).map(toArticle);
   } catch {
     return [];
   }

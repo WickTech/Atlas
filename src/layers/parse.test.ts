@@ -48,6 +48,13 @@ describe("parseEonet", () => {
   });
 });
 
+describe("parseGdacsRss URL scheme validation", () => {
+  it("drops a non-http(s) link", () => {
+    const xml = `<rss xmlns:gdacs="http://www.gdacs.org" xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#"><channel><item><title>X</title><link>javascript:alert(1)</link><gdacs:alertlevel>Red</gdacs:alertlevel><gdacs:eventtype>EQ</gdacs:eventtype><gdacs:eventid>1</gdacs:eventid><gdacs:iscurrent>true</gdacs:iscurrent><geo:Point><geo:lat>1</geo:lat><geo:long>1</geo:long></geo:Point></item></channel></rss>`;
+    expect(parseGdacsRss(xml)[0]?.url).toBeUndefined();
+  });
+});
+
 describe("parseGdacsRss", () => {
   const xml = `<?xml version="1.0" encoding="utf-8"?><rss xmlns:gdacs="http://www.gdacs.org" xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#"><channel>
 <item><title>Red earthquake (Magnitude 7M, Depth:18km) in China</title><link>http://www.gdacs.org/report.aspx?eventtype=EQ&amp;eventid=1573141</link>
